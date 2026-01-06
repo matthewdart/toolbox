@@ -51,6 +51,12 @@ toolbox/
 
 ---
 
+## Available skills
+
+- canvas_markdown: extract markdown from a ChatGPT canvas share URL. Usage: `canvas_markdown <url>` or `echo <url> | canvas_markdown` (use `-o <path>` to write a file).
+
+---
+
 ## Design principles
 
 All skills in this repository MUST follow these rules:
