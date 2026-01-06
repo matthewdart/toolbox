@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import unicodedata
+from typing import Optional, Tuple
 
 
 def fetch_html(url: str) -> str:
@@ -24,7 +27,10 @@ def fetch_html(url: str) -> str:
     return result.stdout
 
 
-def extract_markdown(html: str) -> str:
+DEFAULT_BASENAME = "canvas"
+
+
+def extract_payload(html: str) -> Tuple[Optional[str], str]:
     pattern = re.compile(r'streamController\.enqueue\("((?:\\.|[^"\\])*)"\);')
     for match in pattern.finditer(html):
         js_string = match.group(1)
@@ -38,13 +44,44 @@ def extract_markdown(html: str) -> str:
             continue
         if not isinstance(data, list):
             continue
+        title = None
         try:
-            idx = data.index("content")
+            title_idx = data.index("title")
+        except ValueError:
+            title_idx = None
+        if title_idx is not None and title_idx + 1 < len(data):
+            title = data[title_idx + 1]
+        try:
+            content_idx = data.index("content")
         except ValueError:
             continue
-        if idx + 1 < len(data):
-            return data[idx + 1]
+        if content_idx + 1 < len(data):
+            return title, data[content_idx + 1]
     raise RuntimeError("markdown content not found in canvas payload")
+
+
+def slugify_title(title: Optional[str]) -> str:
+    if not title:
+        return DEFAULT_BASENAME
+    normalized = unicodedata.normalize("NFKD", title)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_text = ascii_text.lower()
+    ascii_text = re.sub(r"[^a-z0-9]+", "-", ascii_text).strip("-")
+    return ascii_text or DEFAULT_BASENAME
+
+
+def suggest_filename(title: Optional[str]) -> str:
+    return f"{slugify_title(title)}.md"
+
+
+def resolve_output_path(output_arg: str, title: Optional[str]) -> str:
+    if output_arg == "auto":
+        return suggest_filename(title)
+    if output_arg.endswith(os.sep) and not os.path.isdir(output_arg):
+        raise RuntimeError(f"output directory not found: {output_arg}")
+    if os.path.isdir(output_arg):
+        return os.path.join(output_arg, suggest_filename(title))
+    return output_arg
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +90,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("url", nargs="?", help="Canvas share URL")
     parser.add_argument("-o", "--output", help="Write markdown to file")
+    parser.add_argument(
+        "--print-filename",
+        action="store_true",
+        help="Print the suggested filename or output path",
+    )
     return parser.parse_args()
 
 
@@ -63,11 +105,16 @@ def main() -> int:
         raise SystemExit("missing URL (provide as arg or stdin)")
 
     html = fetch_html(url)
-    markdown = extract_markdown(html)
+    title, markdown = extract_payload(html)
 
     if args.output:
-        with open(args.output, "w", encoding="utf-8") as handle:
+        output_path = resolve_output_path(args.output, title)
+        with open(output_path, "w", encoding="utf-8") as handle:
             handle.write(markdown)
+        if args.print_filename:
+            sys.stdout.write(output_path)
+    elif args.print_filename:
+        sys.stdout.write(suggest_filename(title))
     else:
         sys.stdout.write(markdown)
     return 0

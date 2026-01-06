@@ -12,6 +12,8 @@ Use the bundled script to fetch a shared canvas page and extract the embedded ma
 - Run `scripts/canvas_markdown.py <url>` to print markdown to stdout.
 - Pipe a URL on stdin if no argument is provided.
 - Pass `-o <path>` to write the markdown to a file.
+- Use `-o auto` or a directory path to write `<slugified-title>.md`.
+- Add `--print-filename` to print the suggested filename or output path.
 
 ## Notes
 
