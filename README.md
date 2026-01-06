@@ -54,6 +54,7 @@ toolbox/
 ## Available skills
 
 - canvas_markdown: extract markdown from a ChatGPT canvas share URL. Usage: `canvas_markdown <url>` or `echo <url> | canvas_markdown` (use `-o <path>` to write a file).
+- create_private_gist: create a private GitHub gist from files or stdin. Usage: `create_private_gist <file> [<file> ...]` or `cat input.txt | create_private_gist -f input.txt` (use `-d <desc>` for a description).
 
 ---
 
