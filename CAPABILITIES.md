@@ -12,6 +12,7 @@ This repo currently ships **two implemented capabilities**, both exposed as **Co
 | --- | --- | --- | --- |
 | `canvas-markdown` | implemented | Codex skill, CLI | Extract markdown from a ChatGPT Canvas shared URL |
 | `create-private-gist` | implemented | Codex skill, CLI | Create a secret GitHub Gist from files or stdin via `gh` |
+| `harmonytime-classes` | implemented | Codex skill, CLI | Fetch upcoming Harmony Time class offers from the bsport API |
 
 ---
 
@@ -112,6 +113,72 @@ Create a **secret** GitHub gist from one or more files, or from stdin.
 
 - Create gist from files: `./skills/create_private_gist README.md CAPABILITIES.md`
 - Create gist from stdin: `cat README.md | ./skills/create_private_gist -f README.md -d "toolbox readme"`
+
+---
+
+## `harmonytime-classes`
+
+Fetch upcoming class offers for Harmony Time (company `995`) from the bsport scheduling API.
+
+- **Skill**: `skills/harmonytime-classes/SKILL.md`
+- **Implementation**: `skills/harmonytime-classes/scripts/harmonytime_classes.py`
+- **CLI entrypoint (convenience)**: `skills/harmonytime_classes`
+- **Packaged skill artifact**: `skills/harmonytime-classes.skill` (zip; don’t edit directly)
+
+### Contract (v1)
+
+**Inputs**
+
+- `--company` (int, default `995`): bsport company id.
+- `--days` (int, default `7`): lookahead window in days (`0` means no end date).
+- `--limit` (int, default `50`): maximum offers to return (`0` means no limit).
+- `--activity` (string, repeatable): case-insensitive substring filter on `activity_name`.
+- `--coach` (int, repeatable): coach id filter; matches `coach` or `coach_override`.
+- `--available-only` (flag): include only offers where `available=true`.
+- `--raw` (flag): return raw offer objects instead of the reduced schema.
+- `--pretty` (flag): pretty-print JSON output.
+
+**Outputs**
+
+Writes JSON to `stdout` containing:
+
+- `company` (int)
+- `range_start` (ISO-8601 string, UTC)
+- `range_end` (ISO-8601 string, UTC or `null` when `--days 0`)
+- `filters` (object): `activity`, `coach`, `available_only`
+- `count` (int)
+- `offers` (array)
+
+When `--raw` is **not** set, each offer includes:
+
+- `id`, `company`, `activity_name`, `date_start`, `duration_minute`, `timezone_name`
+- `available`, `full`, `effectif`, `validated_booking_count`, `spots_left`
+- `establishment`, `coach`, `meta_activity`
+
+**Side effects**
+
+- Performs network requests to `https://api.production.bsport.io/book/v1/offer/`.
+
+**Dependencies**
+
+- `python3`
+- `curl` available in `PATH`
+- Network access to reach the bsport API
+
+**Failure modes (non-exhaustive)**
+
+- `curl` missing from `PATH`.
+- Network/HTTP failure (surfaced from `curl -fsSL`).
+- Invalid JSON response from the API.
+- `--days` or `--limit` is negative.
+- Pagination loop detected (API `links.next` repeats).
+
+**Examples**
+
+- Fetch next 7 days: `./skills/harmonytime_classes`
+- Only available offers, limit 10: `./skills/harmonytime_classes --available-only --limit 10`
+- Filter by activity substring: `./skills/harmonytime_classes --activity yoga --activity pilates`
+- Include raw offers: `./skills/harmonytime_classes --raw --pretty`
 
 ---
 

@@ -45,6 +45,7 @@ See `CAPABILITIES.md` for the canonical list, contracts, and usage.
 
 * `canvas-markdown`
 * `create-private-gist`
+* `harmonytime-classes`
 
 ---
 
