@@ -1,56 +1,68 @@
 # Toolbox
 
-A multi-surface **capability toolbox** for building reusable helpers that can be invoked via:
+A capability-first toolbox with shared core logic and thin adapters for:
 
-* Codex skills
-* OpenAI function / tool calling
-* MCP servers
-* CLI / HTTP
+- Codex skills
+- OpenAI tool calling
+- MCP (stdio)
+- Local CLI
 
-## Why This Exists
+## Quickstart
 
-Most AI tooling today is:
+### 1) Setup
 
-* tightly coupled to one execution surface
-* prompt-centric
-* hard to reuse or compose
+```
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-This toolbox enforces a **capability-first architecture**:
+### 2) Generate OpenAI tool definitions
 
-> Define once → Call everywhere
+```
+python -m adapters.openai.toolgen
+```
 
----
+### 3) Run a capability locally
 
-## Core Principles
+```
+python -m core.dispatch --capability text.normalize_markdown --input-json '{"text":"hello  \nworld"}'
+```
 
-* Capability ≠ Adapter
-* Contracts are explicit and stable
-* Logic is shared, not duplicated
-* Adapters are thin and replaceable
+### 4) Run MCP server (stdio)
 
----
+```
+python -m adapters.mcp.server
+```
 
-## Typical Use Cases
+### 5) Run OpenAI tool runner
 
-* Reusing the same helper in Codex and MCP
-* Gradually migrating Codex skills to OpenAI tools
-* Enabling agent-to-agent calls via MCP
-* Building CLI tooling backed by AI-ready capabilities
+```
+python -m adapters.openai.runner --message "Normalize this markdown: hello  \nworld"
+```
 
----
+Set `OPENAI_API_KEY` in your environment or `.env` (see `.env.example`).
 
 ## Currently Implemented
 
-See `CAPABILITIES.md` for the canonical list, contracts, and usage.
+- `bsport.list_offers`
+- `text.normalize_markdown`
+- `harmonytime-classes` (Codex skill adapter)
 
-* `canvas-markdown`
-* `create-private-gist`
-* `harmonytime-classes`
+See `CAPABILITIES.md` for full details and contracts.
 
----
+## Docs
 
-## Start Here
+- `AGENTS.md` — agent rules
+- `CAPABILITIES.md` — capability registry
+- `CONTRACT.md` — contract format
+- `docs/openai.md` — OpenAI runner
+- `docs/mcp.md` — MCP server
 
-* `AGENTS.md` – rules for agents and Codex
-* `CAPABILITIES.md` – what helpers exist
-* `CONTRACT.md` – how contracts are defined
+## Tests
+
+Run minimal tests with:
+
+```
+python -m unittest discover -s tests
+```

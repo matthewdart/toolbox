@@ -1,97 +1,253 @@
-# AGENTS.md
+# AGENTS.md — Toolbox‑Optimised
+
+This document defines how AI coding agents (including Codex) should operate in this **Toolbox** repository.
+
+The toolbox prioritises:
+
+* lightweight, individual tools
+* rapid prototyping and iteration
+* gradual hardening into shared capabilities
+
+Agents are collaborators. Humans remain accountable for decisions.
+
+---
 
 ## Purpose
 
-This repository contains a **Toolbox of reusable helpers ("capabilities")** designed to be callable through **multiple execution surfaces**:
+This repository contains a **capability‑first toolbox**.
 
-* Codex skills
-* OpenAI function / tool calling
-* MCP servers
-* CLI and/or HTTP adapters
+Agents assist with:
 
-Each capability is defined **once**, with a stable contract, and exposed via adapters.
+* analysing existing skills
+* discovering and extracting reusable capabilities
+* implementing those capabilities across Codex, OpenAI tools, and MCP
 
----
-
-## How to Work With This Repository (Agents)
-
-### Golden Rules
-
-1. **Capabilities are surface-agnostic**
-
-   * Business logic MUST NOT be embedded directly in Codex prompts, MCP handlers, or OpenAI tool schemas.
-   * Logic belongs in a shared implementation module.
-
-2. **Every capability has a contract**
-
-   * Inputs, outputs, side-effects, and failure modes must be explicit.
-   * Contracts are authoritative.
-
-3. **Adapters are thin**
-
-   * Codex / OpenAI / MCP layers only:
-
-     * validate inputs
-     * translate formats
-     * call the core capability
-     * return results
-
-4. **Backward compatibility matters**
-
-   * Capabilities may evolve.
-   * Contracts must be versioned if behavior changes.
+The repository explicitly supports **both exploratory and stabilised work**.
 
 ---
 
-## Repository Structure (Authoritative)
+## Operating Modes (Authoritative)
 
-```
-/capabilities/        # Capability definitions (what exists)
-/contracts/           # Canonical contracts (schemas + semantics)
-/core/                # Shared implementation logic
-/adapters/
-  ├─ codex/           # Codex skill wrappers
-  ├─ openai/          # OpenAI function/tool definitions
-  ├─ mcp/             # MCP server implementations
-  ├─ cli/             # CLI adapters
-/docs/
-  ├─ AGENTS.md
-  ├─ CAPABILITIES.md
-  ├─ CONTRACT.md
-```
+Agents MUST operate in one of the following modes. If not explicitly stated, **Prototype Mode is the default**.
 
----
+### 1. Prototype Mode (Default)
 
-## When Adding a New Capability
+Used for:
 
-Agents MUST follow this sequence:
+* experiments
+* skill‑to‑capability discovery
+* one‑off or early‑stage tools
 
-1. Define the capability in `/capabilities`
-2. Define or update its contract in `/contracts`
-3. Implement logic in `/core`
-4. Add one or more adapters in `/adapters`
-5. Update documentation
+Characteristics:
 
-Skipping steps is not allowed.
+* speed over ceremony
+* assumptions are allowed but must be stated
+* contracts may be lightweight or provisional
+* issues, plans, and ADRs are OPTIONAL
+
+Breaking changes are allowed.
 
 ---
 
-## What Agents MUST NOT Do
+### 2. Stabilised Mode
 
-* ❌ Hardcode logic inside Codex prompts
-* ❌ Duplicate business logic across adapters
-* ❌ Introduce surface-specific behavior into core logic
-* ❌ Modify contracts without updating documentation
+Used for:
+
+* shared or reused capabilities
+* multi‑surface tooling relied on by other tools
+* anything claiming stability or reuse
+
+Characteristics:
+
+* explicit contracts
+* versioning expectations
+* documentation required
+* side effects must be resolved and recorded
+
+Breaking changes REQUIRE acknowledgement.
 
 ---
 
-## Design Intent
+## Source of Truth
 
-This repository is intentionally designed to support:
+The following are authoritative, in descending order:
 
-* **future execution surfaces**
-* **LLM orchestration**
-* **tool composition**
-* **capability discovery**
+1. Explicit user instructions
+2. docs/CONTRACT.md and declared authoritative documents
+3. Repository documentation
+4. Approved capabilities and shared tooling
+5. Repository code
 
-Agents should optimize for **clarity, composability, and reusability**, not speed of one-off execution.
+If authoritative sources do not exist, agents MAY infer and propose them.
+
+---
+
+## Core Principles (Always Apply)
+
+1. **Capabilities before adapters**
+   Capabilities are surface‑agnostic. Adapters are thin.
+
+2. **No silent scope expansion**
+   New behaviour, assumptions, or side effects must be stated.
+
+3. **Surface assumptions explicitly**
+   Implicit context in skills must become explicit inputs in capabilities.
+
+4. **Prefer reuse over duplication**
+   Temporary duplication is acceptable in Prototype Mode but must be resolved before stabilisation.
+
+---
+
+## Capability Lifecycle States
+
+Capabilities may exist in one of the following states:
+
+### Experimental
+
+* derived directly from skills
+* minimal or informal contracts
+* no stability guarantees
+
+### Provisional
+
+* canonical contract defined
+* adapters exist for multiple surfaces
+* minor breaking changes allowed
+
+### Stable
+
+* versioned contracts
+* backward compatibility guaranteed
+* full stabilised‑mode rules apply
+
+Agents should declare or infer the lifecycle state when modifying a capability.
+
+---
+
+## Workflow Expectations
+
+### Prototype Mode Workflow (Lightweight)
+
+Agents SHOULD:
+
+* analyse the skill or request
+* propose or infer capabilities
+* state assumptions and trade‑offs inline
+* implement minimal working adapters
+
+Agents MAY:
+
+* skip GitHub issues
+* skip formal plan docs
+* iterate directly in code and docs
+
+---
+
+### Stabilised Mode Workflow (Structured)
+
+Agents MUST:
+
+* review relevant contracts and docs
+* analyse impacts and side effects
+* update documentation alongside code
+* respect versioning and compatibility
+
+Plans, ADRs, or issues SHOULD be created when decisions are long‑lived.
+
+---
+
+## Research, Convergence, Execution Phases
+
+Agents must distinguish between:
+
+### Research Phase
+
+* explore alternatives
+* surface assumptions
+* avoid premature implementation
+
+### Convergence Phase
+
+* select and justify an approach
+* identify rejected alternatives
+
+### Execution Phase
+
+* apply confirmed decisions
+* minimise exploration
+
+In Prototype Mode, phases may be combined if assumptions are documented.
+
+---
+
+## Execution Environments
+
+### Codex Environments
+
+Assume:
+
+* no sudo
+* no system services
+* no package installation
+* no inbound networking
+
+All tooling must run in user space.
+
+---
+
+### User‑Controlled Environments
+
+If execution requires:
+
+* sudo
+* persistent services
+* system modification
+
+Agents MUST propose commands and effects first and wait for approval.
+
+---
+
+## Skills, Capabilities, and Tooling
+
+Rules:
+
+* If a capability exists, prefer using it over re‑implementation
+* Skills are treated as provisional primitives
+* Capabilities replace skills once stabilised
+
+Agents SHOULD propose a new capability when:
+
+* logic is reused
+* behaviour must be deterministic
+* multiple execution surfaces are needed
+
+---
+
+## Documentation and Session Capture
+
+Prototype Mode:
+
+* inline notes are sufficient
+
+Stabilised Mode:
+
+* decisions, assumptions, and impacts must be captured in durable artefacts
+
+Chat history is never authoritative.
+
+---
+
+## Safe Defaults
+
+* default to Prototype Mode
+* default to minimal viable capability
+* default to explicit assumptions
+* default to later hardening, not upfront bureaucracy
+
+---
+
+## Final Rule
+
+Agents assist.
+Humans decide.
+Capabilities evolve.

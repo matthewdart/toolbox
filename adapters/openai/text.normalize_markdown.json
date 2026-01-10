@@ -1,0 +1,35 @@
+{
+  "function": {
+    "description": "Normalize Markdown content with optional whitespace cleanup.",
+    "name": "text.normalize_markdown",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "options": {
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "ensure_final_newline": {
+              "default": true,
+              "type": "boolean"
+            },
+            "trim_trailing_whitespace": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "text": {
+          "description": "Markdown text to normalize.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

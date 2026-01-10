@@ -2,9 +2,9 @@
 
 This file is the registry (index) of capabilities currently implemented in this repository.
 
-> Note: today these capabilities live as **Codex skills** and **CLI scripts** under `skills/`. The long-term goal is to extract shared core implementations and keep adapters thin (see `AGENTS.md`).
+> Note: some capabilities still have Codex skill adapters under `skills/`. Core implementations live in `/core`, with thin adapters in `/adapters` (see `AGENTS.md`).
 
-This repo currently ships **two implemented capabilities**, both exposed as **Codex skills** and runnable as **local CLI scripts**.
+This repo currently ships implemented capabilities and skills, with core capabilities exposed via Codex, OpenAI tools, and MCP where applicable.
 
 ## Implemented
 
@@ -12,7 +12,9 @@ This repo currently ships **two implemented capabilities**, both exposed as **Co
 | --- | --- | --- | --- |
 | `canvas-markdown` | implemented | Codex skill, CLI | Extract markdown from a ChatGPT Canvas shared URL |
 | `create-private-gist` | implemented | Codex skill, CLI | Create a secret GitHub Gist from files or stdin via `gh` |
-| `harmonytime-classes` | implemented | Codex skill, CLI | Fetch upcoming Harmony Time class offers from the bsport API |
+| `bsport.list_offers` | implemented | Codex, OpenAI, MCP, CLI | Fetch upcoming bsport offers with filters |
+| `text.normalize_markdown` | implemented | Codex, OpenAI, MCP, CLI | Normalize Markdown text via deterministic whitespace rules |
+| `harmonytime-classes` | adapter | Codex skill, CLI | Thin wrapper over `bsport.list_offers` for Harmony Time (company 995) |
 
 ---
 
@@ -116,69 +118,55 @@ Create a **secret** GitHub gist from one or more files, or from stdin.
 
 ---
 
-## `harmonytime-classes`
+## `bsport.list_offers`
 
-Fetch upcoming class offers for Harmony Time (company `995`) from the bsport scheduling API.
+Fetch upcoming offers for a bsport company with optional filters.
+
+- **Contract**: `contracts/bsport.list_offers.v1.json`
+- **Core**: `core/bsport/list_offers.py`
+- **Adapters**:
+  - Codex: `adapters/codex/bsport.list_offers.md` (via `skills/harmonytime_classes`)
+  - OpenAI: `adapters/openai/bsport.list_offers.json`
+  - MCP: `adapters/mcp/server.py` (registered from contracts)
+
+### CLI usage (via Codex skill adapter)
+
+- Fetch next 7 days: `./skills/harmonytime_classes`
+- Only available offers, limit 10: `./skills/harmonytime_classes --available-only --limit 10`
+- Filter by activity substring: `./skills/harmonytime_classes --activity yoga --activity pilates`
+- Include raw offers: `./skills/harmonytime_classes --raw --pretty`
+
+---
+
+## `text.normalize_markdown`
+
+Normalize Markdown text using deterministic whitespace rules.
+
+- **Contract**: `contracts/text.normalize_markdown.v1.json`
+- **Core**: `core/text/normalize_markdown.py`
+- **Adapters**:
+  - Codex: `adapters/codex/capability_wrapper.md`
+  - OpenAI: `adapters/openai/text.normalize_markdown.json`
+  - MCP: `adapters/mcp/server.py` (registered from contracts)
+
+### CLI usage
+
+```bash
+python -m core.dispatch --capability text.normalize_markdown --input-json '{"text":"hello  \\nworld"}'
+```
+
+---
+
+## `harmonytime-classes` (Codex skill adapter)
+
+Thin CLI wrapper around `bsport.list_offers` with Harmony Time defaults.
 
 - **Skill**: `skills/harmonytime-classes/SKILL.md`
 - **Implementation**: `skills/harmonytime-classes/scripts/harmonytime_classes.py`
 - **CLI entrypoint (convenience)**: `skills/harmonytime_classes`
 - **Packaged skill artifact**: `skills/harmonytime-classes.skill` (zip; don’t edit directly)
 
-### Contract (v1)
-
-**Inputs**
-
-- `--company` (int, default `995`): bsport company id.
-- `--days` (int, default `7`): lookahead window in days (`0` means no end date).
-- `--limit` (int, default `50`): maximum offers to return (`0` means no limit).
-- `--activity` (string, repeatable): case-insensitive substring filter on `activity_name`.
-- `--coach` (int, repeatable): coach id filter; matches `coach` or `coach_override`.
-- `--available-only` (flag): include only offers where `available=true`.
-- `--raw` (flag): return raw offer objects instead of the reduced schema.
-- `--pretty` (flag): pretty-print JSON output.
-
-**Outputs**
-
-Writes JSON to `stdout` containing:
-
-- `company` (int)
-- `range_start` (ISO-8601 string, UTC)
-- `range_end` (ISO-8601 string, UTC or `null` when `--days 0`)
-- `filters` (object): `activity`, `coach`, `available_only`
-- `count` (int)
-- `offers` (array)
-
-When `--raw` is **not** set, each offer includes:
-
-- `id`, `company`, `activity_name`, `date_start`, `duration_minute`, `timezone_name`
-- `available`, `full`, `effectif`, `validated_booking_count`, `spots_left`
-- `establishment`, `coach`, `meta_activity`
-
-**Side effects**
-
-- Performs network requests to `https://api.production.bsport.io/book/v1/offer/`.
-
-**Dependencies**
-
-- `python3`
-- `curl` available in `PATH`
-- Network access to reach the bsport API
-
-**Failure modes (non-exhaustive)**
-
-- `curl` missing from `PATH`.
-- Network/HTTP failure (surfaced from `curl -fsSL`).
-- Invalid JSON response from the API.
-- `--days` or `--limit` is negative.
-- Pagination loop detected (API `links.next` repeats).
-
-**Examples**
-
-- Fetch next 7 days: `./skills/harmonytime_classes`
-- Only available offers, limit 10: `./skills/harmonytime_classes --available-only --limit 10`
-- Filter by activity substring: `./skills/harmonytime_classes --activity yoga --activity pilates`
-- Include raw offers: `./skills/harmonytime_classes --raw --pretty`
+This adapter preserves the existing CLI flags and defaults while delegating all logic to `core/bsport/list_offers.py`.
 
 ---
 

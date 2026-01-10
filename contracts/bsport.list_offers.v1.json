@@ -1,0 +1,267 @@
+{
+  "name": "bsport.list_offers",
+  "description": "Fetch upcoming bsport offers for a company with optional filters.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "company": {
+        "type": "integer",
+        "description": "Bsport company id.",
+        "default": 995,
+        "minimum": 1
+      },
+      "days": {
+        "type": "integer",
+        "description": "Number of days ahead to include. 0 means no end date.",
+        "default": 7,
+        "minimum": 0
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum offers to return. 0 means no limit.",
+        "default": 50,
+        "minimum": 0
+      },
+      "activity": {
+        "type": "array",
+        "description": "Case-insensitive substring filters for activity_name.",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "coach": {
+        "type": "array",
+        "description": "Coach id filters (matches coach or coach_override).",
+        "items": {
+          "type": "integer"
+        },
+        "default": []
+      },
+      "available_only": {
+        "type": "boolean",
+        "description": "Only include offers where available=true.",
+        "default": false
+      },
+      "raw": {
+        "type": "boolean",
+        "description": "Return raw offer objects instead of the reduced schema.",
+        "default": false
+      }
+    },
+    "required": []
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "company": {
+        "type": "integer"
+      },
+      "range_start": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "range_end": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "format": "date-time"
+      },
+      "filters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coach": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "available_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "activity",
+          "coach",
+          "available_only"
+        ]
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "offers": {
+        "type": "array",
+        "description": "Offer objects. When raw=false, items match the normalized schema.",
+        "items": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Normalized offer schema.",
+              "properties": {
+                "id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "company": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "activity_name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "date_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "duration_minute": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "timezone_name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "available": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "full": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "effectif": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "validated_booking_count": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "spots_left": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "establishment": {
+                  "type": [
+                    "object",
+                    "null",
+                    "string",
+                    "integer"
+                  ]
+                },
+                "coach": {
+                  "type": [
+                    "object",
+                    "null",
+                    "string",
+                    "integer"
+                  ]
+                },
+                "meta_activity": {
+                  "type": [
+                    "object",
+                    "null",
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "company",
+                "activity_name",
+                "date_start",
+                "duration_minute",
+                "timezone_name",
+                "available",
+                "full",
+                "effectif",
+                "validated_booking_count",
+                "spots_left",
+                "establishment",
+                "coach",
+                "meta_activity"
+              ],
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "description": "Raw offer object from the bsport API.",
+              "additionalProperties": true
+            }
+          ]
+        }
+      }
+    },
+    "required": [
+      "company",
+      "range_start",
+      "range_end",
+      "filters",
+      "count",
+      "offers"
+    ]
+  },
+  "errors": [
+    {
+      "code": "dependency_error",
+      "description": "Missing curl binary."
+    },
+    {
+      "code": "network_error",
+      "description": "Network or HTTP failures."
+    },
+    {
+      "code": "invalid_response",
+      "description": "Invalid JSON response."
+    },
+    {
+      "code": "validation_error",
+      "description": "Invalid input values."
+    },
+    {
+      "code": "pagination_loop",
+      "description": "Pagination loop detected."
+    }
+  ],
+  "side_effects": "Network calls to the bsport offers API.",
+  "version_notes": "v1 based on harmonytime-classes skill behavior. Defaults preserve company=995, days=7, limit=50."
+}
