@@ -34,6 +34,8 @@ HTTP_METHODS = {
     "trace",
 }
 
+OPENAPI_TARGET = "3.1.0"
+
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -95,6 +97,51 @@ def collect_security_scheme_names(spec: dict) -> set[str]:
                 if isinstance(entry, dict):
                     names.update(entry.keys())
     return names
+
+
+def normalize_openapi_version(spec: dict) -> dict:
+    version = str(spec.get("openapi", "")).strip()
+    if version != OPENAPI_TARGET:
+        spec["openapi"] = OPENAPI_TARGET
+    return spec
+
+
+def sanitize_operation_id(value: str) -> str:
+    out = []
+    for ch in value:
+        if ch.isalnum() or ch == "_":
+            out.append(ch)
+        else:
+            out.append("_")
+    sanitized = "".join(out)
+    if not sanitized or sanitized[0].isdigit():
+        sanitized = f"op_{sanitized}"
+    return sanitized
+
+
+def normalize_operation_ids(spec: dict) -> dict:
+    used = {}
+    paths = spec.get("paths") or {}
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        for method, op in path_item.items():
+            if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                continue
+            op_id = op.get("operationId")
+            if not isinstance(op_id, str):
+                continue
+            sanitized = sanitize_operation_id(op_id)
+            if sanitized != op_id:
+                op.setdefault("x-original-operationId", op_id)
+            base = sanitized
+            counter = 1
+            while sanitized in used and used[sanitized] != op:
+                counter += 1
+                sanitized = f"{base}_{counter}"
+            used[sanitized] = op
+            op["operationId"] = sanitized
+    return spec
 
 
 def prune_components(spec: dict) -> dict:
@@ -202,6 +249,7 @@ def strip_top_level_extensions(spec: dict) -> dict:
             spec.pop(key)
     return spec
 
+
 def normalize_security(spec: dict) -> dict:
     components = spec.setdefault("components", {})
     security_schemes = components.setdefault("securitySchemes", {})
@@ -253,7 +301,9 @@ def main() -> int:
     if not isinstance(spec, dict):
         raise ValueError("Failed to parse OpenAPI document.")
 
+    normalize_openapi_version(spec)
     trim_paths(spec)
+    normalize_operation_ids(spec)
     strip_top_level_extensions(spec)
     normalize_security(spec)
     prune_components(spec)
