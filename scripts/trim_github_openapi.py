@@ -4,6 +4,7 @@ import sys
 import urllib.request
 from collections import deque, defaultdict
 from pathlib import Path
+import copy
 
 import yaml
 
@@ -35,6 +36,7 @@ HTTP_METHODS = {
 }
 
 OPENAPI_TARGET = "3.1.0"
+MAX_DESCRIPTION_LENGTH = 300
 
 
 def read_text(path: Path) -> str:
@@ -141,6 +143,62 @@ def normalize_operation_ids(spec: dict) -> dict:
                 sanitized = f"{base}_{counter}"
             used[sanitized] = op
             op["operationId"] = sanitized
+    return spec
+
+
+def inline_parameters(spec: dict) -> dict:
+    components = spec.get("components") or {}
+    parameter_defs = components.get("parameters") or {}
+
+    def expand_params(param_list):
+        if not isinstance(param_list, list):
+            return param_list
+        expanded = []
+        for item in param_list:
+            if isinstance(item, dict) and "$ref" in item:
+                ref = item["$ref"]
+                component_key = parse_component_ref(ref)
+                if component_key is None:
+                    expanded.append(item)
+                    continue
+                section, name = component_key
+                if section != "parameters" or name not in parameter_defs:
+                    expanded.append(item)
+                    continue
+                expanded.append(copy.deepcopy(parameter_defs[name]))
+            else:
+                expanded.append(item)
+        return expanded
+
+    paths = spec.get("paths") or {}
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        if "parameters" in path_item:
+            path_item["parameters"] = expand_params(path_item["parameters"])
+        for method, op in path_item.items():
+            if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                continue
+            if "parameters" in op:
+                op["parameters"] = expand_params(op["parameters"])
+
+    return spec
+
+
+def truncate_descriptions(spec: dict) -> dict:
+    def walk(node):
+        if isinstance(node, dict):
+            for key, value in list(node.items()):
+                if key == "description" and isinstance(value, str) and len(value) > MAX_DESCRIPTION_LENGTH:
+                    trimmed = value[: MAX_DESCRIPTION_LENGTH - 3].rstrip()
+                    node[key] = f"{trimmed}..."
+                else:
+                    walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(spec)
     return spec
 
 
@@ -304,6 +362,8 @@ def main() -> int:
     normalize_openapi_version(spec)
     trim_paths(spec)
     normalize_operation_ids(spec)
+    inline_parameters(spec)
+    truncate_descriptions(spec)
     strip_top_level_extensions(spec)
     normalize_security(spec)
     prune_components(spec)
