@@ -12,7 +12,7 @@ UPSTREAM_URL = "https://raw.githubusercontent.com/github/rest-api-description/ma
 DEFAULT_OUTPUT = "docs/openapi/github-micro.yaml"
 DEFAULT_CACHE = "vendor/github/rest-api-description/api.github.com.yaml"
 
-ALLOWED_PATHS = {
+DEFAULT_ALLOWED_PATHS = {
     "/user/repos": {"get"},
     "/repos/{owner}/{repo}": {"get"},
     "/repos/{owner}/{repo}/issues": {"get", "post"},
@@ -22,6 +22,11 @@ ALLOWED_PATHS = {
     "/repos/{owner}/{repo}/contents/{path}": {"get", "put"},
     "/gists": {"post"},
     "/gists/{gist_id}": {"get", "patch"},
+}
+
+GISTS_ALLOWED_PATHS = {
+    "/gists": {"get", "post"},
+    "/gists/{gist_id}": {"get", "patch", "delete"},
 }
 
 HTTP_METHODS = {
@@ -273,14 +278,14 @@ def validate_refs(spec: dict) -> None:
             raise KeyError(f"Unresolved $ref: {ref}")
 
 
-def trim_paths(spec: dict) -> dict:
+def trim_paths(spec: dict, allowed_paths: dict[str, set[str]]) -> dict:
     paths = spec.get("paths") or {}
-    missing = [path for path in ALLOWED_PATHS if path not in paths]
+    missing = [path for path in allowed_paths if path not in paths]
     if missing:
         raise KeyError(f"Missing required paths: {', '.join(missing)}")
 
     trimmed_paths = {}
-    for path, allowed_methods in ALLOWED_PATHS.items():
+    for path, allowed_methods in allowed_paths.items():
         path_item = paths[path]
         new_item = {}
         for key, value in path_item.items():
@@ -339,6 +344,12 @@ def main() -> int:
     parser.add_argument("--cache", action="store_true", help="Write downloaded spec to vendor cache.")
     parser.add_argument("--url", default=UPSTREAM_URL, help="Override upstream spec URL.")
     parser.add_argument("--cache-path", default=DEFAULT_CACHE, help="Vendor cache path.")
+    parser.add_argument(
+        "--preset",
+        default="micro",
+        choices=["micro", "gists"],
+        help="Path allowlist preset to use.",
+    )
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
@@ -360,7 +371,11 @@ def main() -> int:
         raise ValueError("Failed to parse OpenAPI document.")
 
     normalize_openapi_version(spec)
-    trim_paths(spec)
+    if args.preset == "gists":
+        allowed_paths = GISTS_ALLOWED_PATHS
+    else:
+        allowed_paths = DEFAULT_ALLOWED_PATHS
+    trim_paths(spec, allowed_paths)
     normalize_operation_ids(spec)
     inline_parameters(spec)
     truncate_descriptions(spec)
@@ -386,7 +401,7 @@ def main() -> int:
         raise ValueError(f"Output file exceeds 1MB: {size} bytes")
 
     paths_methods = []
-    for path, methods in ALLOWED_PATHS.items():
+    for path, methods in allowed_paths.items():
         for method in sorted(methods):
             paths_methods.append(f"{method.upper()} {path}")
 
