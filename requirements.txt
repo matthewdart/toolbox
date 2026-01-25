@@ -2,3 +2,4 @@ openai
 mcp
 jsonschema
 python-dotenv
+PyYAML
