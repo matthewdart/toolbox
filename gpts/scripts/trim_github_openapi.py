@@ -37,6 +37,13 @@ USER_REPOS_ALLOWED_PATHS = {
     "/user/repos": {"get"},
 }
 
+COMBINED_ALLOWED_PATHS = {
+    "/gists": {"get", "post"},
+    "/gists/{gist_id}": {"get", "patch", "delete"},
+    "/user/repos": {"get"},
+    "/repos/{owner}/{repo}/contents/{path}": {"get", "put", "delete"},
+}
+
 HTTP_METHODS = {
     "get",
     "put",
@@ -355,7 +362,7 @@ def main() -> int:
     parser.add_argument(
         "--preset",
         default="micro",
-        choices=["micro", "gists", "repo-contents", "user-repos"],
+        choices=["micro", "gists", "repo-contents", "user-repos", "combined"],
         help="Path allowlist preset to use.",
     )
     args = parser.parse_args()
@@ -385,6 +392,8 @@ def main() -> int:
         allowed_paths = REPO_CONTENTS_ALLOWED_PATHS
     elif args.preset == "user-repos":
         allowed_paths = USER_REPOS_ALLOWED_PATHS
+    elif args.preset == "combined":
+        allowed_paths = COMBINED_ALLOWED_PATHS
     else:
         allowed_paths = DEFAULT_ALLOWED_PATHS
     trim_paths(spec, allowed_paths)

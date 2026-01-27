@@ -1,0 +1,3317 @@
+openapi: 3.1.0
+info:
+  version: 1.1.4
+  title: GitHub v3 REST API
+  description: GitHub's v3 REST API.
+  license:
+    name: MIT
+    url: https://spdx.org/licenses/MIT
+  termsOfService: https://docs.github.com/articles/github-terms-of-service
+  contact:
+    name: Support
+    url: https://support.github.com/contact?tags=dotcom-rest-api
+  x-github-plan: api.github.com
+servers:
+- url: https://api.github.com
+paths:
+  /gists:
+    get:
+      summary: List gists for the authenticated user
+      description: 'Lists the authenticated user''s gists or if called anonymously,
+        this endpoint returns all public gists:'
+      tags:
+      - gists
+      operationId: gists_list
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/gists/gists#list-gists-for-the-authenticated-user
+      parameters:
+      - name: since
+        description: 'Only show results that were last updated after the given time.
+          This is a timestamp in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601)
+          format: `YYYY-MM-DDTHH:MM:SSZ`.'
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: per_page
+        description: The number of results per page (max 100). For more information,
+          see "[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api)."
+        in: query
+        schema:
+          type: integer
+          default: 30
+      - name: page
+        description: The page number of the results to fetch. For more information,
+          see "[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api)."
+        in: query
+        schema:
+          type: integer
+          default: 1
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/base-gist'
+              examples:
+                default:
+                  $ref: '#/components/examples/base-gist-items'
+          headers:
+            Link:
+              $ref: '#/components/headers/link'
+        '304':
+          $ref: '#/components/responses/not_modified'
+        '403':
+          $ref: '#/components/responses/forbidden'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: gists
+        subcategory: gists
+      x-original-operationId: gists/list
+    post:
+      summary: Create a gist
+      description: 'Allows you to add a new gist with one or more files.
+
+
+        > [!NOTE]
+
+        > Don''t name your files "gistfile" with a numerical suffix. This is the format
+        of the automatic naming scheme that Gist uses internally.'
+      operationId: gists_create
+      tags:
+      - gists
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/gists/gists#create-a-gist
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                description:
+                  description: Description of the gist
+                  example: Example Ruby script
+                  type: string
+                files:
+                  description: Names and content for the files that make up the gist
+                  example:
+                    hello.rb:
+                      content: puts "Hello, World!"
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      content:
+                        description: Content of the file
+                        readOnly: false
+                        type: string
+                    required:
+                    - content
+                public:
+                  oneOf:
+                  - description: Flag indicating whether the gist is public
+                    example: true
+                    type: boolean
+                    default: false
+                  - type: string
+                    example: 'true'
+                    default: 'false'
+                    enum:
+                    - 'true'
+                    - 'false'
+              required:
+              - files
+              type: object
+            examples:
+              default:
+                summary: Creating a gist
+                value:
+                  description: Example of a gist
+                  public: false
+                  files:
+                    README.md:
+                      content: Hello World
+      responses:
+        '201':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/gist-simple'
+              examples:
+                default:
+                  $ref: '#/components/examples/gist'
+          headers:
+            Location:
+              example: https://api.github.com/gists/aa5a315d61ae9438b18d
+              schema:
+                type: string
+        '422':
+          $ref: '#/components/responses/validation_failed'
+        '304':
+          $ref: '#/components/responses/not_modified'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '403':
+          $ref: '#/components/responses/forbidden'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: gists
+        subcategory: gists
+      x-original-operationId: gists/create
+  /gists/{gist_id}:
+    get:
+      summary: Get a gist
+      description: 'Gets a specified gist.
+
+
+        This endpoint supports the following custom media types. For more information,
+        see "[Media types](https://docs.github.com/rest/using-the-rest-api/getting-started-with-the-rest-api#media-types)."
+
+
+        - **`application/vnd.github.raw+json`**: Returns the raw markdown. This is
+        th...'
+      tags:
+      - gists
+      operationId: gists_get
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/gists/gists#get-a-gist
+      parameters:
+      - name: gist_id
+        description: The unique identifier of the gist.
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/gist-simple'
+              examples:
+                default:
+                  $ref: '#/components/examples/gist'
+        '403':
+          $ref: '#/components/responses/forbidden_gist'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '304':
+          $ref: '#/components/responses/not_modified'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: gists
+        subcategory: gists
+      x-original-operationId: gists/get
+    patch:
+      summary: Update a gist
+      description: 'Allows you to update a gist''s description and to update, delete,
+        or rename gist files. Files
+
+        from the previous version of the gist that aren''t explicitly changed during
+        an edit
+
+        are unchanged.
+
+
+        At least one of `description` or `files` is required.
+
+
+        This endpoint supports the following custom media...'
+      tags:
+      - gists
+      operationId: gists_update
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/gists/gists#update-a-gist
+      parameters:
+      - name: gist_id
+        description: The unique identifier of the gist.
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                description:
+                  description: The description of the gist.
+                  example: Example Ruby script
+                  type: string
+                files:
+                  description: 'The gist files to be updated, renamed, or deleted.
+                    Each `key` must match the current filename
+
+                    (including extension) of the targeted gist file. For example:
+                    `hello.py`.
+
+
+                    To delete a file, set the whole file to null. For example: `hello.py
+                    : null`. The file will also be
+
+                    deleted if the specified obj...'
+                  example:
+                    hello.rb:
+                      content: blah
+                      filename: goodbye.rb
+                  type: object
+                  additionalProperties:
+                    type: object
+                    nullable: true
+                    properties:
+                      content:
+                        description: The new content of the file.
+                        type: string
+                      filename:
+                        description: The new filename for the file.
+                        type: string
+                        nullable: true
+              type: object
+              nullable: true
+            examples:
+              updateGist:
+                summary: Updating a gist
+                value:
+                  description: An updated gist description
+                  files:
+                    README.md:
+                      content: Hello World from GitHub
+              deleteFile:
+                summary: Deleting a gist file
+                value:
+                  files:
+                    hello.py: null
+              renameFile:
+                summary: Renaming a gist file
+                value:
+                  files:
+                    hello.py:
+                      filename: goodbye.py
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/gist-simple'
+              examples:
+                updateGist:
+                  $ref: '#/components/examples/gist'
+                deleteFile:
+                  $ref: '#/components/examples/delete-gist-file'
+                renameFile:
+                  $ref: '#/components/examples/rename-gist-file'
+        '422':
+          $ref: '#/components/responses/validation_failed'
+        '404':
+          $ref: '#/components/responses/not_found'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: gists
+        subcategory: gists
+      x-original-operationId: gists/update
+    delete:
+      summary: Delete a gist
+      description: ''
+      tags:
+      - gists
+      operationId: gists_delete
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/gists/gists#delete-a-gist
+      parameters:
+      - name: gist_id
+        description: The unique identifier of the gist.
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Response
+        '404':
+          $ref: '#/components/responses/not_found'
+        '304':
+          $ref: '#/components/responses/not_modified'
+        '403':
+          $ref: '#/components/responses/forbidden'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: gists
+        subcategory: gists
+      x-original-operationId: gists/delete
+  /user/repos:
+    get:
+      summary: List repositories for the authenticated user
+      description: 'Lists repositories that the authenticated user has explicit permission
+        (`:read`, `:write`, or `:admin`) to access.
+
+
+        The authenticated user has explicit permission to access repositories they
+        own, repositories where they are a collaborator, and repositories that they
+        can access through an organiza...'
+      tags:
+      - repos
+      operationId: repos_list_for_authenticated_user
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/repos/repos#list-repositories-for-the-authenticated-user
+      parameters:
+      - name: visibility
+        description: Limit results to repositories with the specified visibility.
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - all
+          - public
+          - private
+          default: all
+      - name: affiliation
+        description: "Comma-separated list of values. Can include:  \n * `owner`:\
+          \ Repositories that are owned by the authenticated user.  \n * `collaborator`:\
+          \ Repositories that the user has been added to as a collaborator.  \n *\
+          \ `organization_member`: Repositories that the user has access to through\
+          \ being a member of an..."
+        in: query
+        required: false
+        schema:
+          type: string
+          default: owner,collaborator,organization_member
+      - name: type
+        description: Limit results to repositories of the specified type. Will cause
+          a `422` error if used in the same request as **visibility** or **affiliation**.
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - all
+          - owner
+          - public
+          - private
+          - member
+          default: all
+      - name: sort
+        description: The property to sort the results by.
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - updated
+          - pushed
+          - full_name
+          default: full_name
+      - name: direction
+        description: 'The order to sort by. Default: `asc` when using `full_name`,
+          otherwise `desc`.'
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+      - name: per_page
+        description: The number of results per page (max 100). For more information,
+          see "[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api)."
+        in: query
+        schema:
+          type: integer
+          default: 30
+      - name: page
+        description: The page number of the results to fetch. For more information,
+          see "[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api)."
+        in: query
+        schema:
+          type: integer
+          default: 1
+      - name: since
+        description: 'Only show repositories updated after the given time. This is
+          a timestamp in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format:
+          `YYYY-MM-DDTHH:MM:SSZ`.'
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: before
+        description: 'Only show repositories updated before the given time. This is
+          a timestamp in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format:
+          `YYYY-MM-DDTHH:MM:SSZ`.'
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/repository'
+              examples:
+                default:
+                  $ref: '#/components/examples/repository-items-default-response'
+          headers:
+            Link:
+              $ref: '#/components/headers/link'
+        '422':
+          $ref: '#/components/responses/validation_failed'
+        '304':
+          $ref: '#/components/responses/not_modified'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '401':
+          $ref: '#/components/responses/requires_authentication'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: false
+        category: repos
+        subcategory: repos
+      x-original-operationId: repos/list-for-authenticated-user
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      summary: Get repository content
+      description: 'Gets the contents of a file or directory in a repository. Specify
+        the file path or directory with the `path` parameter. If you omit the `path`
+        parameter, you will receive the contents of the repository''s root directory.
+
+
+        This endpoint supports the following custom media types. For more informatio...'
+      tags:
+      - repos
+      operationId: repos_get_content
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/repos/contents#get-repository-content
+      parameters:
+      - name: owner
+        description: The account owner of the repository. The name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: repo
+        description: The name of the repository without the `.git` extension. The
+          name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: path
+        description: path parameter
+        in: path
+        required: true
+        schema:
+          type: string
+        x-multi-segment: true
+      - name: ref
+        description: "The name of the commit/branch/tag. Default: the repository\u2019\
+          s default branch."
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Response
+          content:
+            application/vnd.github.object:
+              schema:
+                $ref: '#/components/schemas/content-tree'
+              examples:
+                response-if-content-is-a-file:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-file'
+                response-if-content-is-a-directory:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-directory-object'
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/content-directory'
+                - $ref: '#/components/schemas/content-file'
+                - $ref: '#/components/schemas/content-symlink'
+                - $ref: '#/components/schemas/content-submodule'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    array: '#/components/schemas/content-directory'
+                    file: '#/components/schemas/content-file'
+                    symlink: '#/components/schemas/content-symlink'
+                    submodule: '#/components/schemas/content-submodule'
+              examples:
+                response-if-content-is-a-file:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-file'
+                response-if-content-is-a-directory:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-directory'
+                response-if-content-is-a-symlink:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-symlink'
+                response-if-content-is-a-submodule:
+                  $ref: '#/components/examples/content-file-response-if-content-is-a-submodule'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '302':
+          $ref: '#/components/responses/found'
+        '304':
+          $ref: '#/components/responses/not_modified'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: true
+        category: repos
+        subcategory: contents
+      x-original-operationId: repos/get-content
+    put:
+      summary: Create or update file contents
+      description: 'Creates a new file or replaces an existing file in a repository.
+
+
+        > [!NOTE]
+
+        > If you use this endpoint and the "[Delete a file](https://docs.github.com/rest/repos/contents/#delete-a-file)"
+        endpoint in parallel, the concurrent requests will conflict and you will receive
+        errors. You must use these...'
+      tags:
+      - repos
+      operationId: repos_create_or_update_file_contents
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/repos/contents#create-or-update-file-contents
+      parameters:
+      - name: owner
+        description: The account owner of the repository. The name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: repo
+        description: The name of the repository without the `.git` extension. The
+          name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: path
+        description: path parameter
+        in: path
+        required: true
+        schema:
+          type: string
+        x-multi-segment: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: The commit message.
+                content:
+                  type: string
+                  description: The new file content, using Base64 encoding.
+                sha:
+                  type: string
+                  description: '**Required if you are updating a file**. The blob
+                    SHA of the file being replaced.'
+                branch:
+                  type: string
+                  description: "The branch name. Default: the repository\u2019s default\
+                    \ branch."
+                committer:
+                  type: object
+                  description: 'The person that committed the file. Default: the authenticated
+                    user.'
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the author or committer of the commit.
+                        You'll receive a `422` status code if `name` is omitted.
+                    email:
+                      type: string
+                      description: The email of the author or committer of the commit.
+                        You'll receive a `422` status code if `email` is omitted.
+                    date:
+                      type: string
+                      example: '"2013-01-05T13:13:22+05:00"'
+                  required:
+                  - name
+                  - email
+                author:
+                  type: object
+                  description: 'The author of the file. Default: The `committer` or
+                    the authenticated user if you omit `committer`.'
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the author or committer of the commit.
+                        You'll receive a `422` status code if `name` is omitted.
+                    email:
+                      type: string
+                      description: The email of the author or committer of the commit.
+                        You'll receive a `422` status code if `email` is omitted.
+                    date:
+                      type: string
+                      example: '"2013-01-15T17:13:22+05:00"'
+                  required:
+                  - name
+                  - email
+              required:
+              - message
+              - content
+            examples:
+              example-for-creating-a-file:
+                summary: Example for creating a file
+                value:
+                  message: my commit message
+                  committer:
+                    name: Monalisa Octocat
+                    email: octocat@github.com
+                  content: bXkgbmV3IGZpbGUgY29udGVudHM=
+              example-for-updating-a-file:
+                summary: Example for updating a file
+                value:
+                  message: a new commit message
+                  committer:
+                    name: Monalisa Octocat
+                    email: octocat@github.com
+                  content: bXkgdXBkYXRlZCBmaWxlIGNvbnRlbnRz
+                  sha: 95b966ae1c166bd92f8ae7d1c313e738c731dfc3
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/file-commit'
+              examples:
+                example-for-updating-a-file:
+                  $ref: '#/components/examples/file-commit-example-for-updating-a-file'
+        '201':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/file-commit'
+              examples:
+                example-for-creating-a-file:
+                  $ref: '#/components/examples/file-commit-example-for-creating-a-file'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '422':
+          $ref: '#/components/responses/validation_failed'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/basic-error'
+                - $ref: '#/components/schemas/repository-rule-violation-error'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: true
+        category: repos
+        subcategory: contents
+      x-original-operationId: repos/create-or-update-file-contents
+    delete:
+      summary: Delete a file
+      description: 'Deletes a file in a repository.
+
+
+        You can provide an additional `committer` parameter, which is an object containing
+        information about the committer. Or, you can provide an `author` parameter,
+        which is an object containing information about the author.
+
+
+        The `author` section is optional and is fill...'
+      tags:
+      - repos
+      operationId: repos_delete_file
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/repos/contents#delete-a-file
+      parameters:
+      - name: owner
+        description: The account owner of the repository. The name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: repo
+        description: The name of the repository without the `.git` extension. The
+          name is not case sensitive.
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: path
+        description: path parameter
+        in: path
+        required: true
+        schema:
+          type: string
+        x-multi-segment: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: The commit message.
+                sha:
+                  type: string
+                  description: The blob SHA of the file being deleted.
+                branch:
+                  type: string
+                  description: "The branch name. Default: the repository\u2019s default\
+                    \ branch"
+                committer:
+                  type: object
+                  description: object containing information about the committer.
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the author (or committer) of the commit
+                    email:
+                      type: string
+                      description: The email of the author (or committer) of the commit
+                author:
+                  type: object
+                  description: object containing information about the author.
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the author (or committer) of the commit
+                    email:
+                      type: string
+                      description: The email of the author (or committer) of the commit
+              required:
+              - message
+              - sha
+            examples:
+              default:
+                value:
+                  message: my commit message
+                  committer:
+                    name: Monalisa Octocat
+                    email: octocat@github.com
+                  sha: 329688480d39049927147c162b9d2deaf885005f
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/file-commit'
+              examples:
+                default:
+                  $ref: '#/components/examples/file-commit'
+        '422':
+          $ref: '#/components/responses/validation_failed'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '503':
+          $ref: '#/components/responses/service_unavailable'
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: true
+        category: repos
+        subcategory: contents
+      x-original-operationId: repos/delete-file
+components:
+  schemas:
+    repository-rule-violation-error:
+      description: Repository rule violation was detected
+      type: object
+      properties:
+        message:
+          type: string
+        documentation_url:
+          type: string
+        status:
+          type: string
+        metadata:
+          type: object
+          properties:
+            secret_scanning:
+              type: object
+              properties:
+                bypass_placeholders:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      placeholder_id:
+                        $ref: '#/components/schemas/secret-scanning-push-protection-bypass-placeholder-id'
+                      token_type:
+                        type: string
+    content-submodule:
+      title: Submodule Content
+      description: An object describing a submodule
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - submodule
+        submodule_git_url:
+          type: string
+          format: uri
+        size:
+          type: integer
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        url:
+          type: string
+          format: uri
+        git_url:
+          type: string
+          format: uri
+          nullable: true
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+        _links:
+          type: object
+          properties:
+            git:
+              type: string
+              format: uri
+              nullable: true
+            html:
+              type: string
+              format: uri
+              nullable: true
+            self:
+              type: string
+              format: uri
+          required:
+          - git
+          - html
+          - self
+      required:
+      - _links
+      - git_url
+      - html_url
+      - download_url
+      - name
+      - path
+      - sha
+      - size
+      - type
+      - url
+      - submodule_git_url
+    secret-scanning-push-protection-bypass-placeholder-id:
+      description: The ID of the push protection bypass placeholder. This value is
+        returned on any push protected routes.
+      type: string
+    repository:
+      title: Repository
+      description: A repository on GitHub.
+      type: object
+      properties:
+        id:
+          description: Unique identifier of the repository
+          example: 42
+          type: integer
+          format: int64
+        node_id:
+          type: string
+          example: MDEwOlJlcG9zaXRvcnkxMjk2MjY5
+        name:
+          description: The name of the repository.
+          type: string
+          example: Team Environment
+        full_name:
+          type: string
+          example: octocat/Hello-World
+        license:
+          $ref: '#/components/schemas/nullable-license-simple'
+        forks:
+          type: integer
+        permissions:
+          type: object
+          properties:
+            admin:
+              type: boolean
+            pull:
+              type: boolean
+            triage:
+              type: boolean
+            push:
+              type: boolean
+            maintain:
+              type: boolean
+          required:
+          - admin
+          - pull
+          - push
+        owner:
+          $ref: '#/components/schemas/simple-user'
+        private:
+          description: Whether the repository is private or public.
+          default: false
+          type: boolean
+        html_url:
+          type: string
+          format: uri
+          example: https://github.com/octocat/Hello-World
+        description:
+          type: string
+          example: This your first repo!
+          nullable: true
+        fork:
+          type: boolean
+        url:
+          type: string
+          format: uri
+          example: https://api.github.com/repos/octocat/Hello-World
+        archive_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/{archive_format}{/ref}
+        assignees_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/assignees{/user}
+        blobs_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/git/blobs{/sha}
+        branches_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/branches{/branch}
+        collaborators_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/collaborators{/collaborator}
+        comments_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/comments{/number}
+        commits_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/commits{/sha}
+        compare_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/compare/{base}...{head}
+        contents_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/contents/{+path}
+        contributors_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/contributors
+        deployments_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/deployments
+        downloads_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/downloads
+        events_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/events
+        forks_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/forks
+        git_commits_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/git/commits{/sha}
+        git_refs_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/git/refs{/sha}
+        git_tags_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/git/tags{/sha}
+        git_url:
+          type: string
+          example: git:github.com/octocat/Hello-World.git
+        issue_comment_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/issues/comments{/number}
+        issue_events_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/issues/events{/number}
+        issues_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/issues{/number}
+        keys_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/keys{/key_id}
+        labels_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/labels{/name}
+        languages_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/languages
+        merges_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/merges
+        milestones_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/milestones{/number}
+        notifications_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/notifications{?since,all,participating}
+        pulls_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/pulls{/number}
+        releases_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/releases{/id}
+        ssh_url:
+          type: string
+          example: git@github.com:octocat/Hello-World.git
+        stargazers_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/stargazers
+        statuses_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/statuses/{sha}
+        subscribers_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/subscribers
+        subscription_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/subscription
+        tags_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/tags
+        teams_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/teams
+        trees_url:
+          type: string
+          example: http://api.github.com/repos/octocat/Hello-World/git/trees{/sha}
+        clone_url:
+          type: string
+          example: https://github.com/octocat/Hello-World.git
+        mirror_url:
+          type: string
+          format: uri
+          example: git:git.example.com/octocat/Hello-World
+          nullable: true
+        hooks_url:
+          type: string
+          format: uri
+          example: http://api.github.com/repos/octocat/Hello-World/hooks
+        svn_url:
+          type: string
+          format: uri
+          example: https://svn.github.com/octocat/Hello-World
+        homepage:
+          type: string
+          format: uri
+          example: https://github.com
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        forks_count:
+          type: integer
+          example: 9
+        stargazers_count:
+          type: integer
+          example: 80
+        watchers_count:
+          type: integer
+          example: 80
+        size:
+          description: The size of the repository, in kilobytes. Size is calculated
+            hourly. When a repository is initially created, the size is 0.
+          type: integer
+          example: 108
+        default_branch:
+          description: The default branch of the repository.
+          type: string
+          example: master
+        open_issues_count:
+          type: integer
+          example: 0
+        is_template:
+          description: Whether this repository acts as a template that can be used
+            to generate new repositories.
+          default: false
+          type: boolean
+          example: true
+        topics:
+          type: array
+          items:
+            type: string
+        has_issues:
+          description: Whether issues are enabled.
+          default: true
+          type: boolean
+          example: true
+        has_projects:
+          description: Whether projects are enabled.
+          default: true
+          type: boolean
+          example: true
+        has_wiki:
+          description: Whether the wiki is enabled.
+          default: true
+          type: boolean
+          example: true
+        has_pages:
+          type: boolean
+        has_downloads:
+          description: Whether downloads are enabled.
+          default: true
+          type: boolean
+          example: true
+          deprecated: true
+        has_discussions:
+          description: Whether discussions are enabled.
+          default: false
+          type: boolean
+          example: true
+        archived:
+          description: Whether the repository is archived.
+          default: false
+          type: boolean
+        disabled:
+          type: boolean
+          description: Returns whether or not this repository disabled.
+        visibility:
+          description: 'The repository visibility: public, private, or internal.'
+          default: public
+          type: string
+        pushed_at:
+          type: string
+          format: date-time
+          example: '2011-01-26T19:06:43Z'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2011-01-26T19:01:12Z'
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          example: '2011-01-26T19:14:43Z'
+          nullable: true
+        allow_rebase_merge:
+          description: Whether to allow rebase merges for pull requests.
+          default: true
+          type: boolean
+          example: true
+        temp_clone_token:
+          type: string
+        allow_squash_merge:
+          description: Whether to allow squash merges for pull requests.
+          default: true
+          type: boolean
+          example: true
+        allow_auto_merge:
+          description: Whether to allow Auto-merge to be used on pull requests.
+          default: false
+          type: boolean
+          example: false
+        delete_branch_on_merge:
+          description: Whether to delete head branches when pull requests are merged
+          default: false
+          type: boolean
+          example: false
+        allow_update_branch:
+          description: Whether or not a pull request head branch that is behind its
+            base branch can always be updated even if it is not required to be up
+            to date before merging.
+          default: false
+          type: boolean
+          example: false
+        use_squash_pr_title_as_default:
+          type: boolean
+          description: Whether a squash merge commit can use the pull request title
+            as default. **This property is closing down. Please use `squash_merge_commit_title`
+            instead.
+          default: false
+          deprecated: true
+        squash_merge_commit_title:
+          type: string
+          enum:
+          - PR_TITLE
+          - COMMIT_OR_PR_TITLE
+          description: 'The default value for a squash merge commit title:
+
+
+            - `PR_TITLE` - default to the pull request''s title.
+
+            - `COMMIT_OR_PR_TITLE` - default to the commit''s title (if only one commit)
+            or the pull request''s title (when more than one commit).'
+        squash_merge_commit_message:
+          type: string
+          enum:
+          - PR_BODY
+          - COMMIT_MESSAGES
+          - BLANK
+          description: 'The default value for a squash merge commit message:
+
+
+            - `PR_BODY` - default to the pull request''s body.
+
+            - `COMMIT_MESSAGES` - default to the branch''s commit messages.
+
+            - `BLANK` - default to a blank commit message.'
+        merge_commit_title:
+          type: string
+          enum:
+          - PR_TITLE
+          - MERGE_MESSAGE
+          description: 'The default value for a merge commit title.
+
+
+            - `PR_TITLE` - default to the pull request''s title.
+
+            - `MERGE_MESSAGE` - default to the classic title for a merge message (e.g.,
+            Merge pull request #123 from branch-name).'
+        merge_commit_message:
+          type: string
+          enum:
+          - PR_BODY
+          - PR_TITLE
+          - BLANK
+          description: 'The default value for a merge commit message.
+
+
+            - `PR_TITLE` - default to the pull request''s title.
+
+            - `PR_BODY` - default to the pull request''s body.
+
+            - `BLANK` - default to a blank commit message.'
+        allow_merge_commit:
+          description: Whether to allow merge commits for pull requests.
+          default: true
+          type: boolean
+          example: true
+        allow_forking:
+          description: Whether to allow forking this repo
+          type: boolean
+        web_commit_signoff_required:
+          description: Whether to require contributors to sign off on web-based commits
+          default: false
+          type: boolean
+        open_issues:
+          type: integer
+        watchers:
+          type: integer
+        master_branch:
+          type: string
+        starred_at:
+          type: string
+          example: '"2020-07-09T00:17:42Z"'
+        anonymous_access_enabled:
+          type: boolean
+          description: Whether anonymous git access is enabled for this repository
+        code_search_index_status:
+          type: object
+          description: The status of the code search index for this repository
+          properties:
+            lexical_search_ok:
+              type: boolean
+            lexical_commit_sha:
+              type: string
+      required:
+      - archive_url
+      - assignees_url
+      - blobs_url
+      - branches_url
+      - collaborators_url
+      - comments_url
+      - commits_url
+      - compare_url
+      - contents_url
+      - contributors_url
+      - deployments_url
+      - description
+      - downloads_url
+      - events_url
+      - fork
+      - forks_url
+      - full_name
+      - git_commits_url
+      - git_refs_url
+      - git_tags_url
+      - hooks_url
+      - html_url
+      - id
+      - node_id
+      - issue_comment_url
+      - issue_events_url
+      - issues_url
+      - keys_url
+      - labels_url
+      - languages_url
+      - merges_url
+      - milestones_url
+      - name
+      - notifications_url
+      - owner
+      - private
+      - pulls_url
+      - releases_url
+      - stargazers_url
+      - statuses_url
+      - subscribers_url
+      - subscription_url
+      - tags_url
+      - teams_url
+      - trees_url
+      - url
+      - clone_url
+      - default_branch
+      - forks
+      - forks_count
+      - git_url
+      - has_downloads
+      - has_issues
+      - has_projects
+      - has_wiki
+      - has_pages
+      - homepage
+      - language
+      - archived
+      - disabled
+      - mirror_url
+      - open_issues
+      - open_issues_count
+      - license
+      - pushed_at
+      - size
+      - ssh_url
+      - stargazers_count
+      - svn_url
+      - watchers
+      - watchers_count
+      - created_at
+      - updated_at
+    content-tree:
+      title: Content Tree
+      description: Content Tree
+      type: object
+      properties:
+        type:
+          type: string
+        size:
+          type: integer
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        content:
+          type: string
+        url:
+          type: string
+          format: uri
+        git_url:
+          type: string
+          format: uri
+          nullable: true
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              size:
+                type: integer
+              name:
+                type: string
+              path:
+                type: string
+              sha:
+                type: string
+              url:
+                type: string
+                format: uri
+              git_url:
+                type: string
+                format: uri
+                nullable: true
+              html_url:
+                type: string
+                format: uri
+                nullable: true
+              download_url:
+                type: string
+                format: uri
+                nullable: true
+              _links:
+                type: object
+                properties:
+                  git:
+                    type: string
+                    format: uri
+                    nullable: true
+                  html:
+                    type: string
+                    format: uri
+                    nullable: true
+                  self:
+                    type: string
+                    format: uri
+                required:
+                - git
+                - html
+                - self
+            required:
+            - _links
+            - git_url
+            - html_url
+            - download_url
+            - name
+            - path
+            - sha
+            - size
+            - type
+            - url
+        encoding:
+          type: string
+        _links:
+          type: object
+          properties:
+            git:
+              type: string
+              format: uri
+              nullable: true
+            html:
+              type: string
+              format: uri
+              nullable: true
+            self:
+              type: string
+              format: uri
+          required:
+          - git
+          - html
+          - self
+      required:
+      - _links
+      - git_url
+      - html_url
+      - download_url
+      - name
+      - path
+      - sha
+      - size
+      - type
+      - url
+    simple-user:
+      title: Simple User
+      description: A GitHub user.
+      type: object
+      properties:
+        name:
+          nullable: true
+          type: string
+        email:
+          nullable: true
+          type: string
+        login:
+          type: string
+          example: octocat
+        id:
+          type: integer
+          format: int64
+          example: 1
+        node_id:
+          type: string
+          example: MDQ6VXNlcjE=
+        avatar_url:
+          type: string
+          format: uri
+          example: https://github.com/images/error/octocat_happy.gif
+        gravatar_id:
+          type: string
+          example: 41d064eb2195891e12d0413f63227ea7
+          nullable: true
+        url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat
+        html_url:
+          type: string
+          format: uri
+          example: https://github.com/octocat
+        followers_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/followers
+        following_url:
+          type: string
+          example: https://api.github.com/users/octocat/following{/other_user}
+        gists_url:
+          type: string
+          example: https://api.github.com/users/octocat/gists{/gist_id}
+        starred_url:
+          type: string
+          example: https://api.github.com/users/octocat/starred{/owner}{/repo}
+        subscriptions_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/subscriptions
+        organizations_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/orgs
+        repos_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/repos
+        events_url:
+          type: string
+          example: https://api.github.com/users/octocat/events{/privacy}
+        received_events_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/received_events
+        type:
+          type: string
+          example: User
+        site_admin:
+          type: boolean
+        starred_at:
+          type: string
+          example: '"2020-07-09T00:17:55Z"'
+        user_view_type:
+          type: string
+          example: public
+      required:
+      - avatar_url
+      - events_url
+      - followers_url
+      - following_url
+      - gists_url
+      - gravatar_id
+      - html_url
+      - id
+      - node_id
+      - login
+      - organizations_url
+      - received_events_url
+      - repos_url
+      - site_admin
+      - starred_url
+      - subscriptions_url
+      - type
+      - url
+    validation-error:
+      title: Validation Error
+      description: Validation Error
+      type: object
+      required:
+      - message
+      - documentation_url
+      properties:
+        message:
+          type: string
+        documentation_url:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+            - code
+            properties:
+              resource:
+                type: string
+              field:
+                type: string
+              message:
+                type: string
+              code:
+                type: string
+              index:
+                type: integer
+              value:
+                oneOf:
+                - type: string
+                  nullable: true
+                - type: integer
+                  nullable: true
+                - type: array
+                  nullable: true
+                  items:
+                    type: string
+    content-directory:
+      title: Content Directory
+      description: A list of directory items
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - dir
+            - file
+            - submodule
+            - symlink
+          size:
+            type: integer
+          name:
+            type: string
+          path:
+            type: string
+          content:
+            type: string
+          sha:
+            type: string
+          url:
+            type: string
+            format: uri
+          git_url:
+            type: string
+            format: uri
+            nullable: true
+          html_url:
+            type: string
+            format: uri
+            nullable: true
+          download_url:
+            type: string
+            format: uri
+            nullable: true
+          _links:
+            type: object
+            properties:
+              git:
+                type: string
+                format: uri
+                nullable: true
+              html:
+                type: string
+                format: uri
+                nullable: true
+              self:
+                type: string
+                format: uri
+            required:
+            - git
+            - html
+            - self
+        required:
+        - _links
+        - git_url
+        - html_url
+        - download_url
+        - name
+        - path
+        - sha
+        - size
+        - type
+        - url
+    nullable-simple-user:
+      title: Simple User
+      description: A GitHub user.
+      type: object
+      properties:
+        name:
+          nullable: true
+          type: string
+        email:
+          nullable: true
+          type: string
+        login:
+          type: string
+          example: octocat
+        id:
+          type: integer
+          format: int64
+          example: 1
+        node_id:
+          type: string
+          example: MDQ6VXNlcjE=
+        avatar_url:
+          type: string
+          format: uri
+          example: https://github.com/images/error/octocat_happy.gif
+        gravatar_id:
+          type: string
+          example: 41d064eb2195891e12d0413f63227ea7
+          nullable: true
+        url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat
+        html_url:
+          type: string
+          format: uri
+          example: https://github.com/octocat
+        followers_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/followers
+        following_url:
+          type: string
+          example: https://api.github.com/users/octocat/following{/other_user}
+        gists_url:
+          type: string
+          example: https://api.github.com/users/octocat/gists{/gist_id}
+        starred_url:
+          type: string
+          example: https://api.github.com/users/octocat/starred{/owner}{/repo}
+        subscriptions_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/subscriptions
+        organizations_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/orgs
+        repos_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/repos
+        events_url:
+          type: string
+          example: https://api.github.com/users/octocat/events{/privacy}
+        received_events_url:
+          type: string
+          format: uri
+          example: https://api.github.com/users/octocat/received_events
+        type:
+          type: string
+          example: User
+        site_admin:
+          type: boolean
+        starred_at:
+          type: string
+          example: '"2020-07-09T00:17:55Z"'
+        user_view_type:
+          type: string
+          example: public
+      required:
+      - avatar_url
+      - events_url
+      - followers_url
+      - following_url
+      - gists_url
+      - gravatar_id
+      - html_url
+      - id
+      - node_id
+      - login
+      - organizations_url
+      - received_events_url
+      - repos_url
+      - site_admin
+      - starred_url
+      - subscriptions_url
+      - type
+      - url
+      nullable: true
+    gist-simple:
+      title: Gist Simple
+      description: Gist Simple
+      type: object
+      properties:
+        forks:
+          deprecated: true
+          nullable: true
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              url:
+                type: string
+                format: uri
+              user:
+                $ref: '#/components/schemas/public-user'
+              created_at:
+                type: string
+                format: date-time
+              updated_at:
+                type: string
+                format: date-time
+        history:
+          deprecated: true
+          nullable: true
+          type: array
+          items:
+            $ref: '#/components/schemas/gist-history'
+        fork_of:
+          nullable: true
+          title: Gist
+          description: Gist
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+            forks_url:
+              type: string
+              format: uri
+            commits_url:
+              type: string
+              format: uri
+            id:
+              type: string
+            node_id:
+              type: string
+            git_pull_url:
+              type: string
+              format: uri
+            git_push_url:
+              type: string
+              format: uri
+            html_url:
+              type: string
+              format: uri
+            files:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  filename:
+                    type: string
+                  type:
+                    type: string
+                  language:
+                    type: string
+                  raw_url:
+                    type: string
+                  size:
+                    type: integer
+            public:
+              type: boolean
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            description:
+              type: string
+              nullable: true
+            comments:
+              type: integer
+            comments_enabled:
+              type: boolean
+            user:
+              $ref: '#/components/schemas/nullable-simple-user'
+            comments_url:
+              type: string
+              format: uri
+            owner:
+              $ref: '#/components/schemas/nullable-simple-user'
+            truncated:
+              type: boolean
+            forks:
+              type: array
+              items: {}
+            history:
+              type: array
+              items: {}
+          required:
+          - id
+          - node_id
+          - url
+          - forks_url
+          - commits_url
+          - git_pull_url
+          - git_push_url
+          - html_url
+          - comments_url
+          - public
+          - description
+          - comments
+          - user
+          - files
+          - created_at
+          - updated_at
+        url:
+          type: string
+        forks_url:
+          type: string
+        commits_url:
+          type: string
+        id:
+          type: string
+        node_id:
+          type: string
+        git_pull_url:
+          type: string
+        git_push_url:
+          type: string
+        html_url:
+          type: string
+        files:
+          type: object
+          additionalProperties:
+            nullable: true
+            type: object
+            properties:
+              filename:
+                type: string
+              type:
+                type: string
+              language:
+                type: string
+              raw_url:
+                type: string
+              size:
+                type: integer
+              truncated:
+                type: boolean
+              content:
+                type: string
+              encoding:
+                type: string
+                description: The encoding used for `content`. Currently, `"utf-8"`
+                  and `"base64"` are supported.
+                default: utf-8
+        public:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        description:
+          type: string
+          nullable: true
+        comments:
+          type: integer
+        comments_enabled:
+          type: boolean
+        user:
+          type: string
+          nullable: true
+        comments_url:
+          type: string
+        owner:
+          $ref: '#/components/schemas/simple-user'
+        truncated:
+          type: boolean
+    base-gist:
+      title: Base Gist
+      description: Base Gist
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        forks_url:
+          type: string
+          format: uri
+        commits_url:
+          type: string
+          format: uri
+        id:
+          type: string
+        node_id:
+          type: string
+        git_pull_url:
+          type: string
+          format: uri
+        git_push_url:
+          type: string
+          format: uri
+        html_url:
+          type: string
+          format: uri
+        files:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              filename:
+                type: string
+              type:
+                type: string
+              language:
+                type: string
+              raw_url:
+                type: string
+              size:
+                type: integer
+              encoding:
+                type: string
+                description: The encoding used for `content`. Currently, `"utf-8"`
+                  and `"base64"` are supported.
+                default: utf-8
+        public:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+          nullable: true
+        comments:
+          type: integer
+        comments_enabled:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/nullable-simple-user'
+        comments_url:
+          type: string
+          format: uri
+        owner:
+          $ref: '#/components/schemas/simple-user'
+        truncated:
+          type: boolean
+        forks:
+          type: array
+          items: {}
+        history:
+          type: array
+          items: {}
+      required:
+      - id
+      - node_id
+      - url
+      - forks_url
+      - commits_url
+      - git_pull_url
+      - git_push_url
+      - html_url
+      - comments_url
+      - public
+      - description
+      - comments
+      - user
+      - files
+      - created_at
+      - updated_at
+    public-user:
+      title: Public User
+      description: Public User
+      type: object
+      properties:
+        login:
+          type: string
+        id:
+          type: integer
+          format: int64
+        user_view_type:
+          type: string
+        node_id:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        gravatar_id:
+          type: string
+          nullable: true
+        url:
+          type: string
+          format: uri
+        html_url:
+          type: string
+          format: uri
+        followers_url:
+          type: string
+          format: uri
+        following_url:
+          type: string
+        gists_url:
+          type: string
+        starred_url:
+          type: string
+        subscriptions_url:
+          type: string
+          format: uri
+        organizations_url:
+          type: string
+          format: uri
+        repos_url:
+          type: string
+          format: uri
+        events_url:
+          type: string
+        received_events_url:
+          type: string
+          format: uri
+        type:
+          type: string
+        site_admin:
+          type: boolean
+        name:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        blog:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        notification_email:
+          type: string
+          format: email
+          nullable: true
+        hireable:
+          type: boolean
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        twitter_username:
+          type: string
+          nullable: true
+        public_repos:
+          type: integer
+        public_gists:
+          type: integer
+        followers:
+          type: integer
+        following:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        plan:
+          type: object
+          properties:
+            collaborators:
+              type: integer
+            name:
+              type: string
+            space:
+              type: integer
+            private_repos:
+              type: integer
+          required:
+          - collaborators
+          - name
+          - space
+          - private_repos
+        private_gists:
+          type: integer
+          example: 1
+        total_private_repos:
+          type: integer
+          example: 2
+        owned_private_repos:
+          type: integer
+          example: 2
+        disk_usage:
+          type: integer
+          example: 1
+        collaborators:
+          type: integer
+          example: 3
+      required:
+      - avatar_url
+      - events_url
+      - followers_url
+      - following_url
+      - gists_url
+      - gravatar_id
+      - html_url
+      - id
+      - node_id
+      - login
+      - organizations_url
+      - received_events_url
+      - repos_url
+      - site_admin
+      - starred_url
+      - subscriptions_url
+      - type
+      - url
+      - bio
+      - blog
+      - company
+      - email
+      - followers
+      - following
+      - hireable
+      - location
+      - name
+      - public_gists
+      - public_repos
+      - created_at
+      - updated_at
+      additionalProperties: false
+    file-commit:
+      title: File Commit
+      description: File Commit
+      type: object
+      required:
+      - content
+      - commit
+      properties:
+        content:
+          type: object
+          properties:
+            name:
+              type: string
+            path:
+              type: string
+            sha:
+              type: string
+            size:
+              type: integer
+            url:
+              type: string
+            html_url:
+              type: string
+            git_url:
+              type: string
+            download_url:
+              type: string
+            type:
+              type: string
+            _links:
+              type: object
+              properties:
+                self:
+                  type: string
+                git:
+                  type: string
+                html:
+                  type: string
+          nullable: true
+        commit:
+          type: object
+          properties:
+            sha:
+              type: string
+            node_id:
+              type: string
+            url:
+              type: string
+            html_url:
+              type: string
+            author:
+              type: object
+              properties:
+                date:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+            committer:
+              type: object
+              properties:
+                date:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+            message:
+              type: string
+            tree:
+              type: object
+              properties:
+                url:
+                  type: string
+                sha:
+                  type: string
+            parents:
+              type: array
+              items:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  html_url:
+                    type: string
+                  sha:
+                    type: string
+            verification:
+              type: object
+              properties:
+                verified:
+                  type: boolean
+                reason:
+                  type: string
+                signature:
+                  type: string
+                  nullable: true
+                payload:
+                  type: string
+                  nullable: true
+                verified_at:
+                  type: string
+                  nullable: true
+    basic-error:
+      title: Basic Error
+      description: Basic Error
+      type: object
+      properties:
+        message:
+          type: string
+        documentation_url:
+          type: string
+        url:
+          type: string
+        status:
+          type: string
+    nullable-license-simple:
+      title: License Simple
+      description: License Simple
+      type: object
+      properties:
+        key:
+          type: string
+          example: mit
+        name:
+          type: string
+          example: MIT License
+        url:
+          type: string
+          nullable: true
+          format: uri
+          example: https://api.github.com/licenses/mit
+        spdx_id:
+          type: string
+          nullable: true
+          example: MIT
+        node_id:
+          type: string
+          example: MDc6TGljZW5zZW1pdA==
+        html_url:
+          type: string
+          format: uri
+      required:
+      - key
+      - name
+      - url
+      - spdx_id
+      - node_id
+      nullable: true
+    gist-history:
+      title: Gist History
+      description: Gist History
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/nullable-simple-user'
+        version:
+          type: string
+        committed_at:
+          type: string
+          format: date-time
+        change_status:
+          type: object
+          properties:
+            total:
+              type: integer
+            additions:
+              type: integer
+            deletions:
+              type: integer
+        url:
+          type: string
+          format: uri
+    content-file:
+      title: Content File
+      description: Content File
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - file
+        encoding:
+          type: string
+        size:
+          type: integer
+        name:
+          type: string
+        path:
+          type: string
+        content:
+          type: string
+        sha:
+          type: string
+        url:
+          type: string
+          format: uri
+        git_url:
+          type: string
+          format: uri
+          nullable: true
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+        _links:
+          type: object
+          properties:
+            git:
+              type: string
+              format: uri
+              nullable: true
+            html:
+              type: string
+              format: uri
+              nullable: true
+            self:
+              type: string
+              format: uri
+          required:
+          - git
+          - html
+          - self
+        target:
+          type: string
+          example: '"actual/actual.md"'
+        submodule_git_url:
+          type: string
+          example: '"git://example.com/defunkt/dotjs.git"'
+      required:
+      - _links
+      - git_url
+      - html_url
+      - download_url
+      - name
+      - path
+      - sha
+      - size
+      - type
+      - url
+      - content
+      - encoding
+    content-symlink:
+      title: Symlink Content
+      description: An object describing a symlink
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - symlink
+        target:
+          type: string
+        size:
+          type: integer
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        url:
+          type: string
+          format: uri
+        git_url:
+          type: string
+          format: uri
+          nullable: true
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+        _links:
+          type: object
+          properties:
+            git:
+              type: string
+              format: uri
+              nullable: true
+            html:
+              type: string
+              format: uri
+              nullable: true
+            self:
+              type: string
+              format: uri
+          required:
+          - git
+          - html
+          - self
+      required:
+      - _links
+      - git_url
+      - html_url
+      - download_url
+      - name
+      - path
+      - sha
+      - size
+      - type
+      - url
+      - target
+  examples:
+    base-gist-items:
+      value:
+      - url: https://api.github.com/gists/aa5a315d61ae9438b18d
+        forks_url: https://api.github.com/gists/aa5a315d61ae9438b18d/forks
+        commits_url: https://api.github.com/gists/aa5a315d61ae9438b18d/commits
+        id: aa5a315d61ae9438b18d
+        node_id: MDQ6R2lzdGFhNWEzMTVkNjFhZTk0MzhiMThk
+        git_pull_url: https://gist.github.com/aa5a315d61ae9438b18d.git
+        git_push_url: https://gist.github.com/aa5a315d61ae9438b18d.git
+        html_url: https://gist.github.com/aa5a315d61ae9438b18d
+        files:
+          hello_world.rb:
+            filename: hello_world.rb
+            type: application/x-ruby
+            language: Ruby
+            raw_url: https://gist.githubusercontent.com/octocat/6cad326836d38bd3a7ae/raw/db9c55113504e46fa076e7df3a04ce592e2e86d8/hello_world.rb
+            size: 167
+        public: true
+        created_at: '2010-04-14T02:15:15Z'
+        updated_at: '2011-06-20T11:34:15Z'
+        description: Hello World Examples
+        comments: 0
+        user: null
+        comments_url: https://api.github.com/gists/aa5a315d61ae9438b18d/comments/
+        owner:
+          login: octocat
+          id: 1
+          node_id: MDQ6VXNlcjE=
+          avatar_url: https://github.com/images/error/octocat_happy.gif
+          gravatar_id: ''
+          url: https://api.github.com/users/octocat
+          html_url: https://github.com/octocat
+          followers_url: https://api.github.com/users/octocat/followers
+          following_url: https://api.github.com/users/octocat/following{/other_user}
+          gists_url: https://api.github.com/users/octocat/gists{/gist_id}
+          starred_url: https://api.github.com/users/octocat/starred{/owner}{/repo}
+          subscriptions_url: https://api.github.com/users/octocat/subscriptions
+          organizations_url: https://api.github.com/users/octocat/orgs
+          repos_url: https://api.github.com/users/octocat/repos
+          events_url: https://api.github.com/users/octocat/events{/privacy}
+          received_events_url: https://api.github.com/users/octocat/received_events
+          type: User
+          site_admin: false
+        truncated: false
+    content-file-response-if-content-is-a-directory:
+      summary: Response if content is a directory and the application/json media type
+        is requested
+      value:
+      - type: file
+        size: 625
+        name: octokit.rb
+        path: lib/octokit.rb
+        sha: fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+        url: https://api.github.com/repos/octokit/octokit.rb/contents/lib/octokit.rb
+        git_url: https://api.github.com/repos/octokit/octokit.rb/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+        html_url: https://github.com/octokit/octokit.rb/blob/master/lib/octokit.rb
+        download_url: https://raw.githubusercontent.com/octokit/octokit.rb/master/lib/octokit.rb
+        _links:
+          self: https://api.github.com/repos/octokit/octokit.rb/contents/lib/octokit.rb
+          git: https://api.github.com/repos/octokit/octokit.rb/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+          html: https://github.com/octokit/octokit.rb/blob/master/lib/octokit.rb
+      - type: dir
+        size: 0
+        name: octokit
+        path: lib/octokit
+        sha: a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+        url: https://api.github.com/repos/octokit/octokit.rb/contents/lib/octokit
+        git_url: https://api.github.com/repos/octokit/octokit.rb/git/trees/a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+        html_url: https://github.com/octokit/octokit.rb/tree/master/lib/octokit
+        download_url: null
+        _links:
+          self: https://api.github.com/repos/octokit/octokit.rb/contents/lib/octokit
+          git: https://api.github.com/repos/octokit/octokit.rb/git/trees/a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+          html: https://github.com/octokit/octokit.rb/tree/master/lib/octokit
+    content-file-response-if-content-is-a-directory-object:
+      summary: Response if content is a directory and the application/vnd.github.v3.object
+        media type is requested
+      value:
+        type: dir
+        size: 0
+        name: src
+        path: src
+        sha: 2962be1c94eaae9794b3080790ec9d74b2fa8358
+        url: https://api.github.com/repos/octocat/octorepo/contents/src?ref=main
+        git_url: https://api.github.com/repos/octocat/octorepo/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+        html_url: https://github.com/octocat/octorepo/blob/main/src
+        download_url: https://raw.githubusercontent.com/octocat/octorepo/main/src
+        _links:
+          self: https://api.github.com/repos/octocat/octorepo/contents/src
+          git: https://api.github.com/repos/octocat/octorepo/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+          html: https://github.com/octocat/octorepo/blob/main/src
+        entries:
+        - type: file
+          size: 625
+          name: app.js
+          path: src/app.js
+          sha: fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+          url: https://api.github.com/repos/octocat/octorepo/contents/src/app.js
+          git_url: https://api.github.com/repos/octocat/octorepo/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+          html_url: https://github.com/octocat/octorepo/blob/main/src/app.js
+          download_url: https://raw.githubusercontent.com/octocat/octorepo/main/src/app.js
+          _links:
+            self: https://api.github.com/repos/octocat/octorepo/contents/src/app.js
+            git: https://api.github.com/repos/octocat/octorepo/git/blobs/fff6fe3a23bf1c8ea0692b4a883af99bee26fd3b
+            html: https://github.com/octocat/octorepo/blob/main/src/app.js
+        - type: dir
+          size: 0
+          name: images
+          path: src/images
+          sha: a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+          url: https://api.github.com/repos/octocat/octorepo/contents/src/images
+          git_url: https://api.github.com/repos/octocat/octorepo/git/trees/a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+          html_url: https://github.com/octocat/octorepo/tree/main/src/images
+          download_url: null
+          _links:
+            self: https://api.github.com/repos/octocat/octorepo/contents/src/images
+            git: https://api.github.com/repos/octocat/octorepo/git/trees/a84d88e7554fc1fa21bcbc4efae3c782a70d2b9d
+            html: https://github.com/octocat/octorepo/tree/main/src/images
+    content-file-response-if-content-is-a-submodule:
+      summary: Response if content is a submodule and the application/json media type
+        is requested
+      value:
+        type: submodule
+        submodule_git_url: git://github.com/jquery/qunit.git
+        size: 0
+        name: qunit
+        path: test/qunit
+        sha: 6ca3721222109997540bd6d9ccd396902e0ad2f9
+        url: https://api.github.com/repos/jquery/jquery/contents/test/qunit?ref=master
+        git_url: https://api.github.com/repos/jquery/qunit/git/trees/6ca3721222109997540bd6d9ccd396902e0ad2f9
+        html_url: https://github.com/jquery/qunit/tree/6ca3721222109997540bd6d9ccd396902e0ad2f9
+        download_url: null
+        _links:
+          git: https://api.github.com/repos/jquery/qunit/git/trees/6ca3721222109997540bd6d9ccd396902e0ad2f9
+          self: https://api.github.com/repos/jquery/jquery/contents/test/qunit?ref=master
+          html: https://github.com/jquery/qunit/tree/6ca3721222109997540bd6d9ccd396902e0ad2f9
+    rename-gist-file:
+      value:
+        url: https://api.github.com/gists/2decf6c462d9b4418f2
+        forks_url: https://api.github.com/gists/2decf6c462d9b4418f2/forks
+        commits_url: https://api.github.com/gists/2decf6c462d9b4418f2/commits
+        id: 2decf6c462d9b4418f2
+        node_id: G_kwDOBhHyLdoAIDg0ODFZDliNDQxOGYy
+        git_pull_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        git_push_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        html_url: https://gist.github.com/2decf6c462d9b4418f2
+        files:
+          goodbye.py:
+            filename: goodbye.py
+            type: application/x-python
+            language: Python
+            raw_url: https://gist.githubusercontent.com/monalisa/8481a81af6b7a2decf6c462d9b4418f2/raw/ac3e6daf176fafe73609fd000cd188e4472010fb/goodbye.py
+            size: 4
+            truncated: false
+            content: '# Hello world'
+        public: true
+        created_at: '2022-09-20T12:11:58Z'
+        updated_at: '2022-09-21T10:28:06Z'
+        description: A gist description.
+        comments: 0
+        user: null
+        comments_url: https://api.github.com/gists/2decf6c462d9b4418f2/comments
+        owner:
+          login: monalisa
+          id: 104456405
+          node_id: U_kgDOBhHyLQ
+          avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+          gravatar_id: ''
+          url: https://api.github.com/users/monalisa
+          html_url: https://github.com/monalisa
+          followers_url: https://api.github.com/users/monalisa/followers
+          following_url: https://api.github.com/users/monalisa/following{/other_user}
+          gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+          starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+          subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+          organizations_url: https://api.github.com/users/monalisa/orgs
+          repos_url: https://api.github.com/users/monalisa/repos
+          events_url: https://api.github.com/users/monalisa/events{/privacy}
+          received_events_url: https://api.github.com/users/monalisa/received_events
+          type: User
+          site_admin: true
+        forks: []
+        history:
+        - user:
+            login: monalisa
+            id: 104456405
+            node_id: U_kgyLQ
+            avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+            gravatar_id: ''
+            url: https://api.github.com/users/monalisa
+            html_url: https://github.com/monalisa
+            followers_url: https://api.github.com/users/monalisa/followers
+            following_url: https://api.github.com/users/monalisa/following{/other_user}
+            gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+            starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+            subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+            organizations_url: https://api.github.com/users/monalisa/orgs
+            repos_url: https://api.github.com/users/monalisa/repos
+            events_url: https://api.github.com/users/monalisa/events{/privacy}
+            received_events_url: https://api.github.com/users/monalisa/received_events
+            type: User
+            site_admin: true
+          version: 468aac8caed5f0c3b859b8286968
+          committed_at: '2022-09-21T10:28:06Z'
+          change_status:
+            total: 0
+            additions: 0
+            deletions: 0
+          url: https://api.github.com/gists/8481a81af6b7a2d418f2/468aac8caed5f0c3b859b8286968
+        truncated: false
+    file-commit-example-for-creating-a-file:
+      value:
+        content:
+          name: hello.txt
+          path: notes/hello.txt
+          sha: 95b966ae1c166bd92f8ae7d1c313e738c731dfc3
+          size: 9
+          url: https://api.github.com/repos/octocat/Hello-World/contents/notes/hello.txt
+          html_url: https://github.com/octocat/Hello-World/blob/master/notes/hello.txt
+          git_url: https://api.github.com/repos/octocat/Hello-World/git/blobs/95b966ae1c166bd92f8ae7d1c313e738c731dfc3
+          download_url: https://raw.githubusercontent.com/octocat/HelloWorld/master/notes/hello.txt
+          type: file
+          _links:
+            self: https://api.github.com/repos/octocat/Hello-World/contents/notes/hello.txt
+            git: https://api.github.com/repos/octocat/Hello-World/git/blobs/95b966ae1c166bd92f8ae7d1c313e738c731dfc3
+            html: https://github.com/octocat/Hello-World/blob/master/notes/hello.txt
+        commit:
+          sha: 7638417db6d59f3c431d3e1f261cc637155684cd
+          node_id: MDY6Q29tbWl0NzYzODQxN2RiNmQ1OWYzYzQzMWQzZTFmMjYxY2M2MzcxNTU2ODRjZA==
+          url: https://api.github.com/repos/octocat/Hello-World/git/commits/7638417db6d59f3c431d3e1f261cc637155684cd
+          html_url: https://github.com/octocat/Hello-World/git/commit/7638417db6d59f3c431d3e1f261cc637155684cd
+          author:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          committer:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          message: my commit message
+          tree:
+            url: https://api.github.com/repos/octocat/Hello-World/git/trees/691272480426f78a0138979dd3ce63b77f706feb
+            sha: 691272480426f78a0138979dd3ce63b77f706feb
+          parents:
+          - url: https://api.github.com/repos/octocat/Hello-World/git/commits/1acc419d4d6a9ce985db7be48c6349a0475975b5
+            html_url: https://github.com/octocat/Hello-World/git/commit/1acc419d4d6a9ce985db7be48c6349a0475975b5
+            sha: 1acc419d4d6a9ce985db7be48c6349a0475975b5
+          verification:
+            verified: false
+            reason: unsigned
+            signature: null
+            payload: null
+            verified_at: null
+    file-commit:
+      value:
+        content: null
+        commit:
+          sha: 7638417db6d59f3c431d3e1f261cc637155684cd
+          node_id: MDY6Q29tbWl0NzYzODQxN2RiNmQ1OWYzYzQzMWQzZTFmMjYxY2M2MzcxNTU2ODRjZA==
+          url: https://api.github.com/repos/octocat/Hello-World/git/commits/7638417db6d59f3c431d3e1f261cc637155684cd
+          html_url: https://github.com/octocat/Hello-World/git/commit/7638417db6d59f3c431d3e1f261cc637155684cd
+          author:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          committer:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          message: my commit message
+          tree:
+            url: https://api.github.com/repos/octocat/Hello-World/git/trees/691272480426f78a0138979dd3ce63b77f706feb
+            sha: 691272480426f78a0138979dd3ce63b77f706feb
+          parents:
+          - url: https://api.github.com/repos/octocat/Hello-World/git/commits/1acc419d4d6a9ce985db7be48c6349a0475975b5
+            html_url: https://github.com/octocat/Hello-World/git/commit/1acc419d4d6a9ce985db7be48c6349a0475975b5
+            sha: 1acc419d4d6a9ce985db7be48c6349a0475975b5
+          verification:
+            verified: false
+            reason: unsigned
+            signature: null
+            payload: null
+            verified_at: null
+    file-commit-example-for-updating-a-file:
+      value:
+        content:
+          name: hello.txt
+          path: notes/hello.txt
+          sha: a56507ed892d05a37c6d6128c260937ea4d287bd
+          size: 9
+          url: https://api.github.com/repos/octocat/Hello-World/contents/notes/hello.txt
+          html_url: https://github.com/octocat/Hello-World/blob/master/notes/hello.txt
+          git_url: https://api.github.com/repos/octocat/Hello-World/git/blobs/a56507ed892d05a37c6d6128c260937ea4d287bd
+          download_url: https://raw.githubusercontent.com/octocat/HelloWorld/master/notes/hello.txt
+          type: file
+          _links:
+            self: https://api.github.com/repos/octocat/Hello-World/contents/notes/hello.txt
+            git: https://api.github.com/repos/octocat/Hello-World/git/blobs/a56507ed892d05a37c6d6128c260937ea4d287bd
+            html: https://github.com/octocat/Hello-World/blob/master/notes/hello.txt
+        commit:
+          sha: 18a43cd8e1e3a79c786e3d808a73d23b6d212b16
+          node_id: MDY6Q29tbWl0MThhNDNjZDhlMWUzYTc5Yzc4NmUzZDgwOGE3M2QyM2I2ZDIxMmIxNg==
+          url: https://api.github.com/repos/octocat/Hello-World/git/commits/18a43cd8e1e3a79c786e3d808a73d23b6d212b16
+          html_url: https://github.com/octocat/Hello-World/git/commit/18a43cd8e1e3a79c786e3d808a73d23b6d212b16
+          author:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          committer:
+            date: '2014-11-07T22:01:45Z'
+            name: Monalisa Octocat
+            email: octocat@github.com
+          message: my commit message
+          tree:
+            url: https://api.github.com/repos/octocat/Hello-World/git/trees/9a21f8e2018f42ffcf369b24d2cd20bc25c9e66f
+            sha: 9a21f8e2018f42ffcf369b24d2cd20bc25c9e66f
+          parents:
+          - url: https://api.github.com/repos/octocat/Hello-World/git/commits/da5a433788da5c255edad7979b328b67d79f53f6
+            html_url: https://github.com/octocat/Hello-World/git/commit/da5a433788da5c255edad7979b328b67d79f53f6
+            sha: da5a433788da5c255edad7979b328b67d79f53f6
+          verification:
+            verified: false
+            reason: unsigned
+            signature: null
+            payload: null
+            verified_at: null
+    content-file-response-if-content-is-a-symlink:
+      summary: Response if content is a symlink and the application/json media type
+        is requested
+      value:
+        type: symlink
+        target: /path/to/symlink/target
+        size: 23
+        name: some-symlink
+        path: bin/some-symlink
+        sha: 452a98979c88e093d682cab404a3ec82babebb48
+        url: https://api.github.com/repos/octokit/octokit.rb/contents/bin/some-symlink
+        git_url: https://api.github.com/repos/octokit/octokit.rb/git/blobs/452a98979c88e093d682cab404a3ec82babebb48
+        html_url: https://github.com/octokit/octokit.rb/blob/master/bin/some-symlink
+        download_url: https://raw.githubusercontent.com/octokit/octokit.rb/master/bin/some-symlink
+        _links:
+          git: https://api.github.com/repos/octokit/octokit.rb/git/blobs/452a98979c88e093d682cab404a3ec82babebb48
+          self: https://api.github.com/repos/octokit/octokit.rb/contents/bin/some-symlink
+          html: https://github.com/octokit/octokit.rb/blob/master/bin/some-symlink
+    content-file-response-if-content-is-a-file:
+      summary: Response if content is a file
+      value:
+        type: file
+        encoding: base64
+        size: 5362
+        name: README.md
+        path: README.md
+        content: IyBZb2dhIEJvmsgaW4gcHJvZ3Jlc3MhIEZlZWwgdAoKOndhcm5pbmc6IFdvc\nZnJlZSBmUgdG8gY0byBjaGVjayBvdXQgdGhlIGFwcCwgYnV0IGJlIHN1c29t\nZSBiYWNrIG9uY2UgaXQgaXMgY29tcGxldGUuCgpBIHdlYiBhcHAgdGhhdCBs\nZWFkcyB5b3UgdGhyb3VnaCBhIHlvZ2Egc2Vzc2lvbi4KCltXb3Jrb3V0IG5v\ndyFdKGh0dHBzOi8vc2tlZHdhcmRzODguZ2l0aHViLmlvL3lvZ2EvKQoKPGlt\nZyBzcmM9InNyYy9pbWFnZXMvbWFza2FibGVfaWNvbl81MTIucG5nIiBhbHQ9\nImJvdCBsaWZ0aW5nIHdlaWdodHMiIHdpZHRoPSIxMDAiLz4KCkRvIHlvdSBo\nYXZlIGZlZWRiYWNrIG9yIGlkZWFzIGZvciBpbXByb3ZlbWVudD8gW09wZW4g\nYW4gaXNzdWVdKGh0dHBzOi8vZ2l0aHViLmNvbS9za2Vkd2FyZHM4OC95b2dh\nL2lzc3Vlcy9uZXcpLgoKV2FudCBtb3JlIGdhbWVzPyBWaXNpdCBbQ25TIEdh\nbWVzXShodHRwczovL3NrZWR3YXJkczg4LmdpdGh1Yi5pby9wb3J0Zm9saW8v\nKS4KCiMjIERldmVsb3BtZW50CgpUbyBhZGQgYSBuZXcgcG9zZSwgYWRkIGFu\nIGVudHJ5IHRvIHRoZSByZWxldmFudCBmaWxlIGluIGBzcmMvYXNhbmFzYC4K\nClRvIGJ1aWxkLCBydW4gYG5wbSBydW4gYnVpbGRgLgoKVG8gcnVuIGxvY2Fs\nbHkgd2l0aCBsaXZlIHJlbG9hZGluZyBhbmQgbm8gc2VydmljZSB3b3JrZXIs\nIHJ1biBgbnBtIHJ1biBkZXZgLiAoSWYgYSBzZXJ2aWNlIHdvcmtlciB3YXMg\ncHJldmlvdXNseSByZWdpc3RlcmVkLCB5b3UgY2FuIHVucmVnaXN0ZXIgaXQg\naW4gY2hyb21lIGRldmVsb3BlciB0b29sczogYEFwcGxpY2F0aW9uYCA+IGBT\nZXJ2aWNlIHdvcmtlcnNgID4gYFVucmVnaXN0ZXJgLikKClRvIHJ1biBsb2Nh\nbGx5IGFuZCByZWdpc3RlciB0aGUgc2VydmljZSB3b3JrZXIsIHJ1biBgbnBt\nIHN0YXJ0YC4KClRvIGRlcGxveSwgcHVzaCB0byBgbWFpbmAgb3IgbWFudWFs\nbHkgdHJpZ2dlciB0aGUgYC5naXRodWIvd29ya2Zsb3dzL2RlcGxveS55bWxg\nIHdvcmtmbG93Lgo=\n
+        sha: 3d21ec53a331a6f037a91c368710b99387d012c1
+        url: https://api.github.com/repos/octokit/octokit.rb/contents/README.md
+        git_url: https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1
+        html_url: https://github.com/octokit/octokit.rb/blob/master/README.md
+        download_url: https://raw.githubusercontent.com/octokit/octokit.rb/master/README.md
+        _links:
+          git: https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1
+          self: https://api.github.com/repos/octokit/octokit.rb/contents/README.md
+          html: https://github.com/octokit/octokit.rb/blob/master/README.md
+    repository-items-default-response:
+      summary: Default response
+      value:
+      - id: 1296269
+        node_id: MDEwOlJlcG9zaXRvcnkxMjk2MjY5
+        name: Hello-World
+        full_name: octocat/Hello-World
+        owner:
+          login: octocat
+          id: 1
+          node_id: MDQ6VXNlcjE=
+          avatar_url: https://github.com/images/error/octocat_happy.gif
+          gravatar_id: ''
+          url: https://api.github.com/users/octocat
+          html_url: https://github.com/octocat
+          followers_url: https://api.github.com/users/octocat/followers
+          following_url: https://api.github.com/users/octocat/following{/other_user}
+          gists_url: https://api.github.com/users/octocat/gists{/gist_id}
+          starred_url: https://api.github.com/users/octocat/starred{/owner}{/repo}
+          subscriptions_url: https://api.github.com/users/octocat/subscriptions
+          organizations_url: https://api.github.com/users/octocat/orgs
+          repos_url: https://api.github.com/users/octocat/repos
+          events_url: https://api.github.com/users/octocat/events{/privacy}
+          received_events_url: https://api.github.com/users/octocat/received_events
+          type: User
+          site_admin: false
+        private: false
+        html_url: https://github.com/octocat/Hello-World
+        description: This your first repo!
+        fork: false
+        url: https://api.github.com/repos/octocat/Hello-World
+        archive_url: https://api.github.com/repos/octocat/Hello-World/{archive_format}{/ref}
+        assignees_url: https://api.github.com/repos/octocat/Hello-World/assignees{/user}
+        blobs_url: https://api.github.com/repos/octocat/Hello-World/git/blobs{/sha}
+        branches_url: https://api.github.com/repos/octocat/Hello-World/branches{/branch}
+        collaborators_url: https://api.github.com/repos/octocat/Hello-World/collaborators{/collaborator}
+        comments_url: https://api.github.com/repos/octocat/Hello-World/comments{/number}
+        commits_url: https://api.github.com/repos/octocat/Hello-World/commits{/sha}
+        compare_url: https://api.github.com/repos/octocat/Hello-World/compare/{base}...{head}
+        contents_url: https://api.github.com/repos/octocat/Hello-World/contents/{+path}
+        contributors_url: https://api.github.com/repos/octocat/Hello-World/contributors
+        deployments_url: https://api.github.com/repos/octocat/Hello-World/deployments
+        downloads_url: https://api.github.com/repos/octocat/Hello-World/downloads
+        events_url: https://api.github.com/repos/octocat/Hello-World/events
+        forks_url: https://api.github.com/repos/octocat/Hello-World/forks
+        git_commits_url: https://api.github.com/repos/octocat/Hello-World/git/commits{/sha}
+        git_refs_url: https://api.github.com/repos/octocat/Hello-World/git/refs{/sha}
+        git_tags_url: https://api.github.com/repos/octocat/Hello-World/git/tags{/sha}
+        git_url: git:github.com/octocat/Hello-World.git
+        issue_comment_url: https://api.github.com/repos/octocat/Hello-World/issues/comments{/number}
+        issue_events_url: https://api.github.com/repos/octocat/Hello-World/issues/events{/number}
+        issues_url: https://api.github.com/repos/octocat/Hello-World/issues{/number}
+        keys_url: https://api.github.com/repos/octocat/Hello-World/keys{/key_id}
+        labels_url: https://api.github.com/repos/octocat/Hello-World/labels{/name}
+        languages_url: https://api.github.com/repos/octocat/Hello-World/languages
+        merges_url: https://api.github.com/repos/octocat/Hello-World/merges
+        milestones_url: https://api.github.com/repos/octocat/Hello-World/milestones{/number}
+        notifications_url: https://api.github.com/repos/octocat/Hello-World/notifications{?since,all,participating}
+        pulls_url: https://api.github.com/repos/octocat/Hello-World/pulls{/number}
+        releases_url: https://api.github.com/repos/octocat/Hello-World/releases{/id}
+        ssh_url: git@github.com:octocat/Hello-World.git
+        stargazers_url: https://api.github.com/repos/octocat/Hello-World/stargazers
+        statuses_url: https://api.github.com/repos/octocat/Hello-World/statuses/{sha}
+        subscribers_url: https://api.github.com/repos/octocat/Hello-World/subscribers
+        subscription_url: https://api.github.com/repos/octocat/Hello-World/subscription
+        tags_url: https://api.github.com/repos/octocat/Hello-World/tags
+        teams_url: https://api.github.com/repos/octocat/Hello-World/teams
+        trees_url: https://api.github.com/repos/octocat/Hello-World/git/trees{/sha}
+        clone_url: https://github.com/octocat/Hello-World.git
+        mirror_url: git:git.example.com/octocat/Hello-World
+        hooks_url: https://api.github.com/repos/octocat/Hello-World/hooks
+        svn_url: https://svn.github.com/octocat/Hello-World
+        homepage: https://github.com
+        language: null
+        forks_count: 9
+        stargazers_count: 80
+        watchers_count: 80
+        size: 108
+        default_branch: master
+        open_issues_count: 0
+        is_template: true
+        topics:
+        - octocat
+        - atom
+        - electron
+        - api
+        has_issues: true
+        has_projects: true
+        has_wiki: true
+        has_pages: false
+        has_downloads: true
+        archived: false
+        disabled: false
+        visibility: public
+        pushed_at: '2011-01-26T19:06:43Z'
+        created_at: '2011-01-26T19:01:12Z'
+        updated_at: '2011-01-26T19:14:43Z'
+        permissions:
+          admin: false
+          push: false
+          pull: true
+        allow_rebase_merge: true
+        template_repository: null
+        temp_clone_token: ABTLWHOULUVAXGTRYU7OC2876QJ2O
+        allow_squash_merge: true
+        allow_auto_merge: false
+        delete_branch_on_merge: true
+        allow_merge_commit: true
+        subscribers_count: 42
+        network_count: 0
+        license:
+          key: mit
+          name: MIT License
+          url: https://api.github.com/licenses/mit
+          spdx_id: MIT
+          node_id: MDc6TGljZW5zZW1pdA==
+          html_url: https://github.com/licenses/mit
+        forks: 1
+        open_issues: 1
+        watchers: 1
+    delete-gist-file:
+      value:
+        url: https://api.github.com/gists/2decf6c462d9b4418f2
+        forks_url: https://api.github.com/gists/2decf6c462d9b4418f2/forks
+        commits_url: https://api.github.com/gists/2decf6c462d9b4418f2/commits
+        id: 2decf6c462d9b4418f2
+        node_id: G_kwDOBhHyLdoAIDg0ODFZDliNDQxOGYy
+        git_pull_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        git_push_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        html_url: https://gist.github.com/2decf6c462d9b4418f2
+        files: null
+        public: true
+        created_at: '2022-09-20T12:11:58Z'
+        updated_at: '2022-09-21T10:28:06Z'
+        description: A gist description.
+        comments: 0
+        user: null
+        comments_url: https://api.github.com/gists/2decf6c462d9b4418f2/comments
+        owner:
+          login: monalisa
+          id: 104456405
+          node_id: U_kgDOBhHyLQ
+          avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+          gravatar_id: ''
+          url: https://api.github.com/users/monalisa
+          html_url: https://github.com/monalisa
+          followers_url: https://api.github.com/users/monalisa/followers
+          following_url: https://api.github.com/users/monalisa/following{/other_user}
+          gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+          starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+          subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+          organizations_url: https://api.github.com/users/monalisa/orgs
+          repos_url: https://api.github.com/users/monalisa/repos
+          events_url: https://api.github.com/users/monalisa/events{/privacy}
+          received_events_url: https://api.github.com/users/monalisa/received_events
+          type: User
+          site_admin: true
+        forks: []
+        history:
+        - user:
+            login: monalisa
+            id: 104456405
+            node_id: U_kgyLQ
+            avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+            gravatar_id: ''
+            url: https://api.github.com/users/monalisa
+            html_url: https://github.com/monalisa
+            followers_url: https://api.github.com/users/monalisa/followers
+            following_url: https://api.github.com/users/monalisa/following{/other_user}
+            gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+            starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+            subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+            organizations_url: https://api.github.com/users/monalisa/orgs
+            repos_url: https://api.github.com/users/monalisa/repos
+            events_url: https://api.github.com/users/monalisa/events{/privacy}
+            received_events_url: https://api.github.com/users/monalisa/received_events
+            type: User
+            site_admin: true
+          version: 9cc352a89178a6d4
+          committed_at: '2022-09-21T10:28:06Z'
+          change_status:
+            total: 1
+            additions: 0
+            deletions: 1
+          url: https://api.github.com/gists/8481a81af6b7a2d418f2/468aac8caed5f0c3b859b8286968
+        truncated: false
+    gist:
+      value:
+        url: https://api.github.com/gists/2decf6c462d9b4418f2
+        forks_url: https://api.github.com/gists/2decf6c462d9b4418f2/forks
+        commits_url: https://api.github.com/gists/2decf6c462d9b4418f2/commits
+        id: 2decf6c462d9b4418f2
+        node_id: G_kwDOBhHyLdZDliNDQxOGYy
+        git_pull_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        git_push_url: https://gist.github.com/2decf6c462d9b4418f2.git
+        html_url: https://gist.github.com/2decf6c462d9b4418f2
+        files:
+          README.md:
+            filename: README.md
+            type: text/markdown
+            language: Markdown
+            raw_url: https://gist.githubusercontent.com/monalisa/2decf6c462d9b4418f2/raw/ac3e6daf176fafe73609fd000cd188e4472010fb/README.md
+            size: 23
+            truncated: false
+            content: Hello world from GitHub
+            encoding: utf-8
+        public: true
+        created_at: '2022-09-20T12:11:58Z'
+        updated_at: '2022-09-21T10:28:06Z'
+        description: An updated gist description.
+        comments: 0
+        comments_enabled: true
+        user: null
+        comments_url: https://api.github.com/gists/2decf6c462d9b4418f2/comments
+        owner:
+          login: monalisa
+          id: 104456405
+          node_id: U_kgDOBhHyLQ
+          avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+          gravatar_id: ''
+          url: https://api.github.com/users/monalisa
+          html_url: https://github.com/monalisa
+          followers_url: https://api.github.com/users/monalisa/followers
+          following_url: https://api.github.com/users/monalisa/following{/other_user}
+          gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+          starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+          subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+          organizations_url: https://api.github.com/users/monalisa/orgs
+          repos_url: https://api.github.com/users/monalisa/repos
+          events_url: https://api.github.com/users/monalisa/events{/privacy}
+          received_events_url: https://api.github.com/users/monalisa/received_events
+          type: User
+          site_admin: true
+        forks: []
+        history:
+        - user:
+            login: monalisa
+            id: 104456405
+            node_id: U_kgyLQ
+            avatar_url: https://avatars.githubusercontent.com/u/104456405?v=4
+            gravatar_id: ''
+            url: https://api.github.com/users/monalisa
+            html_url: https://github.com/monalisa
+            followers_url: https://api.github.com/users/monalisa/followers
+            following_url: https://api.github.com/users/monalisa/following{/other_user}
+            gists_url: https://api.github.com/users/monalisa/gists{/gist_id}
+            starred_url: https://api.github.com/users/monalisa/starred{/owner}{/repo}
+            subscriptions_url: https://api.github.com/users/monalisa/subscriptions
+            organizations_url: https://api.github.com/users/monalisa/orgs
+            repos_url: https://api.github.com/users/monalisa/repos
+            events_url: https://api.github.com/users/monalisa/events{/privacy}
+            received_events_url: https://api.github.com/users/monalisa/received_events
+            type: User
+            site_admin: true
+          version: 468aac8caed5f0c3b859b8286968
+          committed_at: '2022-09-21T10:28:06Z'
+          change_status:
+            total: 2
+            additions: 1
+            deletions: 1
+          url: https://api.github.com/gists/8481a81af6b7a2d418f2/468aac8caed5f0c3b859b8286968
+        truncated: false
+  responses:
+    service_unavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              documentation_url:
+                type: string
+    conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/basic-error'
+    found:
+      description: Found
+    not_found:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/basic-error'
+    requires_authentication:
+      description: Requires authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/basic-error'
+    forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/basic-error'
+    not_modified:
+      description: Not modified
+    validation_failed:
+      description: Validation failed, or the endpoint has been spammed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/validation-error'
+    forbidden_gist:
+      description: Forbidden Gist
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              block:
+                type: object
+                properties:
+                  reason:
+                    type: string
+                  created_at:
+                    type: string
+                  html_url:
+                    type: string
+                    nullable: true
+              message:
+                type: string
+              documentation_url:
+                type: string
+  headers:
+    link:
+      example: <https://api.github.com/resource?page=2>; rel="next", <https://api.github.com/resource?page=5>;
+        rel="last"
+      schema:
+        type: string
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+security:
+- BearerAuth: []
