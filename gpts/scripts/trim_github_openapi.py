@@ -9,7 +9,7 @@ import copy
 import yaml
 
 UPSTREAM_URL = "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml"
-DEFAULT_OUTPUT = "docs/openapi/github-micro.yaml"
+DEFAULT_OUTPUT = "gpts/openapi/github-micro.yaml"
 DEFAULT_CACHE = "vendor/github/rest-api-description/api.github.com.yaml"
 
 DEFAULT_ALLOWED_PATHS = {
@@ -27,6 +27,14 @@ DEFAULT_ALLOWED_PATHS = {
 GISTS_ALLOWED_PATHS = {
     "/gists": {"get", "post"},
     "/gists/{gist_id}": {"get", "patch", "delete"},
+}
+
+REPO_CONTENTS_ALLOWED_PATHS = {
+    "/repos/{owner}/{repo}/contents/{path}": {"get", "put", "delete"},
+}
+
+USER_REPOS_ALLOWED_PATHS = {
+    "/user/repos": {"get"},
 }
 
 HTTP_METHODS = {
@@ -347,12 +355,12 @@ def main() -> int:
     parser.add_argument(
         "--preset",
         default="micro",
-        choices=["micro", "gists"],
+        choices=["micro", "gists", "repo-contents", "user-repos"],
         help="Path allowlist preset to use.",
     )
     args = parser.parse_args()
 
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     output_path = root / args.output
     cache_path = root / args.cache_path
 
@@ -373,6 +381,10 @@ def main() -> int:
     normalize_openapi_version(spec)
     if args.preset == "gists":
         allowed_paths = GISTS_ALLOWED_PATHS
+    elif args.preset == "repo-contents":
+        allowed_paths = REPO_CONTENTS_ALLOWED_PATHS
+    elif args.preset == "user-repos":
+        allowed_paths = USER_REPOS_ALLOWED_PATHS
     else:
         allowed_paths = DEFAULT_ALLOWED_PATHS
     trim_paths(spec, allowed_paths)
