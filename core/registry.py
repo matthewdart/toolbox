@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict
 
 from core.bsport.list_offers import list_offers
+from core.media.download_video import download_video
 from core.media.analyze_video import analyze_video
 from core.openai.calculate_usage_cost import calculate_usage_cost
 from core.text.normalize_markdown import normalize_markdown
@@ -11,6 +12,7 @@ from core.text.normalize_markdown import normalize_markdown
 
 REGISTRY: Dict[str, Callable[..., Any]] = {
     "bsport.list_offers": list_offers,
+    "media.download_video": download_video,
     "media.analyze_video": analyze_video,
     "openai.calculate_usage_cost": calculate_usage_cost,
     "text.normalize_markdown": normalize_markdown,

@@ -1,0 +1,101 @@
+{
+  "function": {
+    "description": "Download a video from a URL to a local file using yt-dlp (supports many platforms) and return resolved file paths + metadata.",
+    "name": "media.download_video",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_playlist": {
+          "default": false,
+          "description": "Allow downloading playlist/multi-entry pages.",
+          "type": "boolean"
+        },
+        "cookies_path": {
+          "default": null,
+          "description": "Optional path to a Netscape-format cookies.txt file for authenticated downloads.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "download": {
+          "default": true,
+          "description": "If false, only extract metadata (no download).",
+          "type": "boolean"
+        },
+        "filename_template": {
+          "default": null,
+          "description": "Optional yt-dlp output template (e.g. \"%(title)s [%(id)s].%(ext)s\"). If null, a default template is used.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format": {
+          "default": "bestvideo+bestaudio/best",
+          "description": "yt-dlp format selector.",
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": null,
+          "description": "Optional HTTP headers to send. Values must be strings.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "output_dir": {
+          "default": null,
+          "description": "Directory where downloads are written. Defaults to ./downloads.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "overwrite": {
+          "default": false,
+          "description": "If true, overwrite existing files.",
+          "type": "boolean"
+        },
+        "quiet": {
+          "default": false,
+          "description": "Reduce downloader output.",
+          "type": "boolean"
+        },
+        "referer": {
+          "default": null,
+          "description": "Convenience: set the Referer header.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "Video page URL or direct media URL.",
+          "type": "string"
+        },
+        "user_agent": {
+          "default": null,
+          "description": "Convenience: set the User-Agent header.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "write_info_json": {
+          "default": true,
+          "description": "When true, write a JSON metadata file to output_dir.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

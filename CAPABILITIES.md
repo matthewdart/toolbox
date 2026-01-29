@@ -14,6 +14,7 @@ This repo currently ships implemented capabilities and skills, with core capabil
 | `create-private-gist` | implemented | Codex skill, CLI | Create a secret GitHub Gist from files or stdin via `gh` |
 | `bsport.list_offers` | implemented | Codex, OpenAI, MCP, CLI | Fetch upcoming bsport offers with filters |
 | `media.analyze_video` | implemented | OpenAI, MCP, CLI | Transcribe a video and extract key slides using OpenAI APIs |
+| `media.download_video` | implemented | OpenAI, MCP, CLI | Download a video from a URL using yt-dlp and return local file paths |
 | `openai.calculate_usage_cost` | implemented | OpenAI, MCP, CLI | Summarize OpenAI usage logs and estimate costs with user-supplied pricing |
 | `text.normalize_markdown` | implemented | Codex, OpenAI, MCP, CLI | Normalize Markdown text via deterministic whitespace rules |
 | `harmonytime-classes` | adapter | Codex skill, CLI | Thin wrapper over `bsport.list_offers` for Harmony Time (company 995) |
@@ -176,6 +177,30 @@ python -m core.dispatch --capability media.analyze_video --input-json '{"video_p
 ```
 
 Outputs are written to `./<video_stem>_analysis/` by default.
+
+---
+
+## `media.download_video`
+
+Download a video from a URL using yt-dlp and return local file paths + metadata.
+
+- **Contract**: `contracts/media.download_video.v1.json`
+- **Core**: `core/media/download_video.py`
+- **Adapters**:
+  - OpenAI: `adapters/openai/media.download_video.json` (generated from contracts)
+  - MCP: `adapters/mcp/server.py` (registered from contracts)
+
+### CLI usage
+
+```bash
+python -m core.dispatch --capability media.download_video --input-json '{"url":"https://example.com/video"}'
+```
+
+For login-gated sites, pass a browser-exported `cookies.txt`:
+
+```bash
+python -m core.dispatch --capability media.download_video --input-json '{"url":"https://example.com/video","cookies_path":"/path/to/cookies.txt"}'
+```
 
 ---
 

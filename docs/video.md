@@ -27,6 +27,14 @@ cp .env.example .env
 .venv/bin/python scripts/analyze_video_openai.py /path/to/video.mp4
 ```
 
+## Download first (optional)
+
+If you have a webinar/video URL (not a local file yet), download it first:
+
+```bash
+.venv/bin/python -m core.dispatch --capability media.download_video --input-json '{"url":"https://example.com/video"}'
+```
+
 Outputs default to `./<video_stem>_analysis/`:
 
 - `transcript.txt`

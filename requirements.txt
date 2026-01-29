@@ -4,3 +4,4 @@ jsonschema
 python-dotenv
 PyYAML
 imageio-ffmpeg
+yt-dlp
