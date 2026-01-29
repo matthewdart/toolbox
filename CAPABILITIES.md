@@ -13,6 +13,8 @@ This repo currently ships implemented capabilities and skills, with core capabil
 | `canvas-markdown` | implemented | Codex skill, CLI | Extract markdown from a ChatGPT Canvas shared URL |
 | `create-private-gist` | implemented | Codex skill, CLI | Create a secret GitHub Gist from files or stdin via `gh` |
 | `bsport.list_offers` | implemented | Codex, OpenAI, MCP, CLI | Fetch upcoming bsport offers with filters |
+| `media.analyze_video` | implemented | OpenAI, MCP, CLI | Transcribe a video and extract key slides using OpenAI APIs |
+| `openai.calculate_usage_cost` | implemented | OpenAI, MCP, CLI | Summarize OpenAI usage logs and estimate costs with user-supplied pricing |
 | `text.normalize_markdown` | implemented | Codex, OpenAI, MCP, CLI | Normalize Markdown text via deterministic whitespace rules |
 | `harmonytime-classes` | adapter | Codex skill, CLI | Thin wrapper over `bsport.list_offers` for Harmony Time (company 995) |
 
@@ -153,6 +155,44 @@ Normalize Markdown text using deterministic whitespace rules.
 
 ```bash
 python -m core.dispatch --capability text.normalize_markdown --input-json '{"text":"hello  \\nworld"}'
+```
+
+---
+
+## `media.analyze_video`
+
+Transcribe a local video file and extract key slide images using OpenAI APIs.
+
+- **Contract**: `contracts/media.analyze_video.v1.json`
+- **Core**: `core/media/analyze_video.py`
+- **Adapters**:
+  - OpenAI: `adapters/openai/media.analyze_video.json` (generated from contracts)
+  - MCP: `adapters/mcp/server.py` (registered from contracts)
+
+### CLI usage
+
+```bash
+python -m core.dispatch --capability media.analyze_video --input-json '{"video_path":"/tmp/example.mp4"}'
+```
+
+Outputs are written to `./<video_stem>_analysis/` by default.
+
+---
+
+## `openai.calculate_usage_cost`
+
+Summarize OpenAI usage from a JSONL log and optionally calculate estimated costs using a user-supplied pricing table.
+
+- **Contract**: `contracts/openai.calculate_usage_cost.v1.json`
+- **Core**: `core/openai/calculate_usage_cost.py`
+- **Adapters**:
+  - OpenAI: `adapters/openai/openai.calculate_usage_cost.json` (generated from contracts)
+  - MCP: `adapters/mcp/server.py` (registered from contracts)
+
+### CLI usage
+
+```bash
+python -m core.dispatch --capability openai.calculate_usage_cost --input-json '{"usage_log_path":"/path/to/openai_usage.jsonl"}'
 ```
 
 ---

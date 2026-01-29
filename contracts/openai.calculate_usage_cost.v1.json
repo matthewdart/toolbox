@@ -1,0 +1,226 @@
+{
+  "name": "openai.calculate_usage_cost",
+  "description": "Summarize OpenAI usage from a JSONL log and optionally calculate estimated costs using user-supplied pricing.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "usage_log_path": {
+        "type": "string",
+        "description": "Path to a JSONL usage log (e.g., produced by media.analyze_video with log_usage=true)."
+      },
+      "pricing": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "Optional pricing table. If omitted, returns usage totals without cost fields.",
+        "default": null,
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string",
+            "default": "USD"
+          },
+          "token_models": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "input_per_1m": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "output_per_1m": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "input_per_1m",
+                "output_per_1m"
+              ]
+            }
+          },
+          "audio_models": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "per_minute": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "per_minute"
+              ]
+            }
+          }
+        }
+      },
+      "fail_on_unknown_model": {
+        "type": "boolean",
+        "description": "If pricing is provided, error when a model is missing from the price table.",
+        "default": true
+      }
+    },
+    "required": [
+      "usage_log_path"
+    ]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "currency": {
+        "type": "string"
+      },
+      "total_cost": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "summary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "total_input_tokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_output_tokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_audio_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "total_audio_minutes": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "total_input_tokens",
+          "total_output_tokens",
+          "total_tokens",
+          "total_audio_seconds",
+          "total_audio_minutes"
+        ]
+      },
+      "line_items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "tokens",
+                "audio_minutes"
+              ]
+            },
+            "calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "input_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "audio_seconds": {
+              "type": "number",
+              "minimum": 0
+            },
+            "audio_minutes": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit_prices": {
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "cost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "model",
+            "kind",
+            "calls",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "audio_seconds",
+            "audio_minutes",
+            "unit_prices",
+            "cost"
+          ]
+        },
+        "default": []
+      },
+      "unknown_models": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "required": [
+      "currency",
+      "total_cost",
+      "summary",
+      "line_items",
+      "unknown_models"
+    ]
+  },
+  "errors": [
+    {
+      "code": "validation_error",
+      "description": "Input did not match schema."
+    },
+    {
+      "code": "output_validation_error",
+      "description": "Output did not match schema."
+    },
+    {
+      "code": "capability_error",
+      "description": "Usage log was unreadable or pricing was missing."
+    }
+  ],
+  "side_effects": "Reads a local JSONL file; no network calls.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}
+

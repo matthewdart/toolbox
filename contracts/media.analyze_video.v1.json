@@ -1,0 +1,220 @@
+{
+  "name": "media.analyze_video",
+  "description": "Transcribe a local video file and extract key slide images using OpenAI APIs.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "video_path": {
+        "type": "string",
+        "description": "Path to a local video file (e.g., .mp4)."
+      },
+      "output_dir": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Directory where outputs are written. Defaults to ./<video_stem>_analysis.",
+        "default": null
+      },
+      "transcribe_model": {
+        "type": "string",
+        "description": "OpenAI audio transcription model (e.g., whisper-1).",
+        "default": "whisper-1"
+      },
+      "vision_model": {
+        "type": "string",
+        "description": "OpenAI vision-capable model for slide extraction.",
+        "default": "gpt-4.1"
+      },
+      "vision_temperature": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 2,
+        "description": "Vision model temperature for slide OCR/extraction (lower = more deterministic).",
+        "default": 0
+      },
+      "chunk_seconds": {
+        "type": "integer",
+        "minimum": 30,
+        "description": "Audio chunk size in seconds (used to avoid file size limits).",
+        "default": 600
+      },
+      "scene_threshold": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "ffmpeg scene-change threshold (higher = fewer frames).",
+        "default": 0.3
+      },
+      "max_frames": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum number of extracted frames to analyze with the vision model (frames are sampled evenly across the video if needed).",
+        "default": 80
+      },
+      "fallback_interval_seconds": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "If no scene-change frames are found, sample one frame every N seconds.",
+        "default": 10
+      },
+      "dedupe_window_seconds": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Only consider frames within this time window (seconds) as potential duplicates.",
+        "default": 180
+      },
+      "dedupe_min_token_cover": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Minimum token overlap (as a fraction of the shorter text) to treat two slides as duplicates.",
+        "default": 0.95
+      },
+      "dedupe_min_seq_ratio": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Minimum normalized string similarity to treat two slides as duplicates.",
+        "default": 0.985
+      },
+      "log_usage": {
+        "type": "boolean",
+        "description": "When true, write OpenAI per-call usage events to a JSONL file.",
+        "default": false
+      },
+      "usage_log_path": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional path for the usage JSONL file. If relative, it is resolved under output_dir. If omitted and log_usage=true, defaults to <output_dir>/openai_usage.jsonl.",
+        "default": null
+      },
+      "max_slides": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum number of slides to keep after filtering/deduping.",
+        "default": 15
+      },
+      "slide_confidence_threshold": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Minimum confidence for a frame to be treated as a slide.",
+        "default": 0.6
+      },
+      "keep_intermediate": {
+        "type": "boolean",
+        "description": "Keep intermediate files (audio chunks / extracted frames).",
+        "default": false
+      }
+    },
+    "required": [
+      "video_path"
+    ]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output_dir": {
+        "type": "string"
+      },
+      "transcript_txt": {
+        "type": "string"
+      },
+      "transcript_srt": {
+        "type": "string"
+      },
+      "transcript_json": {
+        "type": "string"
+      },
+      "slides_json": {
+        "type": "string"
+      },
+      "usage_log_jsonl": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "default": null
+      },
+      "key_slides_dir": {
+        "type": "string"
+      },
+      "key_slides": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "timestamp": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "image_path": {
+              "type": "string"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "extracted_text": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "confidence": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "timestamp",
+            "image_path",
+            "title",
+            "extracted_text",
+            "summary",
+            "confidence"
+          ]
+        },
+        "default": []
+      }
+    },
+    "required": [
+      "output_dir",
+      "transcript_txt",
+      "transcript_srt",
+      "transcript_json",
+      "slides_json",
+      "usage_log_jsonl",
+      "key_slides_dir",
+      "key_slides"
+    ]
+  },
+  "errors": [
+    {
+      "code": "validation_error",
+      "description": "Input did not match schema."
+    },
+    {
+      "code": "output_validation_error",
+      "description": "Output did not match schema."
+    },
+    {
+      "code": "capability_error",
+      "description": "Execution failed (missing ffmpeg, missing OPENAI_API_KEY, API error, etc.)."
+    }
+  ],
+  "side_effects": "Performs network calls to OpenAI APIs; writes files under output_dir; overwrites transcript/slides outputs on rerun and removes prior key_slides/slide_* outputs; may download an ffmpeg binary via imageio-ffmpeg if ffmpeg is not present.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}

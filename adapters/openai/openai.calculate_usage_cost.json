@@ -1,0 +1,79 @@
+{
+  "function": {
+    "description": "Summarize OpenAI usage from a JSONL log and optionally calculate estimated costs using user-supplied pricing.",
+    "name": "openai.calculate_usage_cost",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "fail_on_unknown_model": {
+          "default": true,
+          "description": "If pricing is provided, error when a model is missing from the price table.",
+          "type": "boolean"
+        },
+        "pricing": {
+          "additionalProperties": false,
+          "default": null,
+          "description": "Optional pricing table. If omitted, returns usage totals without cost fields.",
+          "properties": {
+            "audio_models": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "per_minute": {
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "per_minute"
+                ],
+                "type": "object"
+              },
+              "default": {},
+              "type": "object"
+            },
+            "currency": {
+              "default": "USD",
+              "type": "string"
+            },
+            "token_models": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "input_per_1m": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "output_per_1m": {
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "input_per_1m",
+                  "output_per_1m"
+                ],
+                "type": "object"
+              },
+              "default": {},
+              "type": "object"
+            }
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "usage_log_path": {
+          "description": "Path to a JSONL usage log (e.g., produced by media.analyze_video with log_usage=true).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "usage_log_path"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

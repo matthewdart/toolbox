@@ -3,3 +3,4 @@ mcp
 jsonschema
 python-dotenv
 PyYAML
+imageio-ffmpeg

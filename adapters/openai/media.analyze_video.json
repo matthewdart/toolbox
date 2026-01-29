@@ -1,0 +1,121 @@
+{
+  "function": {
+    "description": "Transcribe a local video file and extract key slide images using OpenAI APIs.",
+    "name": "media.analyze_video",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "chunk_seconds": {
+          "default": 600,
+          "description": "Audio chunk size in seconds (used to avoid file size limits).",
+          "minimum": 30,
+          "type": "integer"
+        },
+        "dedupe_min_seq_ratio": {
+          "default": 0.985,
+          "description": "Minimum normalized string similarity to treat two slides as duplicates.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "dedupe_min_token_cover": {
+          "default": 0.95,
+          "description": "Minimum token overlap (as a fraction of the shorter text) to treat two slides as duplicates.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "dedupe_window_seconds": {
+          "default": 180,
+          "description": "Only consider frames within this time window (seconds) as potential duplicates.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "fallback_interval_seconds": {
+          "default": 10,
+          "description": "If no scene-change frames are found, sample one frame every N seconds.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "keep_intermediate": {
+          "default": false,
+          "description": "Keep intermediate files (audio chunks / extracted frames).",
+          "type": "boolean"
+        },
+        "log_usage": {
+          "default": false,
+          "description": "When true, write OpenAI per-call usage events to a JSONL file.",
+          "type": "boolean"
+        },
+        "max_frames": {
+          "default": 80,
+          "description": "Maximum number of extracted frames to analyze with the vision model (frames are sampled evenly across the video if needed).",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_slides": {
+          "default": 15,
+          "description": "Maximum number of slides to keep after filtering/deduping.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "output_dir": {
+          "default": null,
+          "description": "Directory where outputs are written. Defaults to ./<video_stem>_analysis.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scene_threshold": {
+          "default": 0.3,
+          "description": "ffmpeg scene-change threshold (higher = fewer frames).",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "slide_confidence_threshold": {
+          "default": 0.6,
+          "description": "Minimum confidence for a frame to be treated as a slide.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "transcribe_model": {
+          "default": "whisper-1",
+          "description": "OpenAI audio transcription model (e.g., whisper-1).",
+          "type": "string"
+        },
+        "usage_log_path": {
+          "default": null,
+          "description": "Optional path for the usage JSONL file. If relative, it is resolved under output_dir. If omitted and log_usage=true, defaults to <output_dir>/openai_usage.jsonl.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "video_path": {
+          "description": "Path to a local video file (e.g., .mp4).",
+          "type": "string"
+        },
+        "vision_model": {
+          "default": "gpt-4.1",
+          "description": "OpenAI vision-capable model for slide extraction.",
+          "type": "string"
+        },
+        "vision_temperature": {
+          "default": 0,
+          "description": "Vision model temperature for slide OCR/extraction (lower = more deterministic).",
+          "maximum": 2,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "video_path"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}
