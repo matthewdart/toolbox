@@ -1,0 +1,64 @@
+{
+  "name": "gist.create_private",
+  "description": "Create a secret GitHub Gist from files or inline content.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "files": {
+        "type": ["array", "null"],
+        "description": "File paths to include in the gist. Mutually exclusive with content.",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "content": {
+        "type": ["string", "null"],
+        "description": "Inline text content for the gist. Used when files is null or empty.",
+        "default": null
+      },
+      "filename": {
+        "type": ["string", "null"],
+        "description": "Filename to use for inline content mode. Only valid when using content.",
+        "default": null
+      },
+      "description": {
+        "type": ["string", "null"],
+        "description": "Gist description.",
+        "default": null
+      }
+    },
+    "required": []
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "gist_url": {
+        "type": "string",
+        "description": "URL of the created gist."
+      }
+    },
+    "required": ["gist_url"]
+  },
+  "errors": [
+    {
+      "code": "dependency_error",
+      "description": "Missing gh CLI."
+    },
+    {
+      "code": "validation_error",
+      "description": "Invalid input (e.g. filename with files, or no content)."
+    },
+    {
+      "code": "capability_error",
+      "description": "gh gist create failed (auth, API error, etc.)."
+    }
+  ],
+  "side_effects": "Creates a new secret gist under the authenticated gh user.",
+  "version_notes": "v1 migrated from create-private-gist Codex skill."
+}

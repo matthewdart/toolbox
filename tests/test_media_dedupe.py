@@ -1,6 +1,6 @@
 import unittest
 
-from core.media.analyze_video import _dedupe_slides
+from capabilities.media_analyze_video.implementation import _dedupe_slides
 
 
 class MediaDedupeTests(unittest.TestCase):

@@ -3,16 +3,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict
 
 from jsonschema import ValidationError, validators
 
-from core.registry import REGISTRY
-
-CONTRACTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "contracts")
+from core.registry import REGISTRY, CONTRACTS
 
 
 @dataclass
@@ -23,12 +20,10 @@ class DispatchError(Exception):
 
 
 def _load_contract(capability_id: str) -> Dict[str, Any]:
-    filename = f"{capability_id}.v1.json"
-    path = os.path.join(CONTRACTS_DIR, filename)
-    if not os.path.isfile(path):
-        raise DispatchError("contract_not_found", f"contract not found: {filename}")
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+    contract = CONTRACTS.get(capability_id)
+    if not contract:
+        raise DispatchError("contract_not_found", f"contract not found for: {capability_id}")
+    return contract
 
 
 def _format_validation_error(err: ValidationError) -> Dict[str, Any]:

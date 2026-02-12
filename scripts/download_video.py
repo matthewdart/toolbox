@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.media.download_video import download_video
+from capabilities.media_download_video.implementation import download_video
 
 
 def _parse_args() -> argparse.Namespace:
