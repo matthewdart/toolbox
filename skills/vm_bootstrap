@@ -106,8 +106,8 @@ def main() -> int:
     checks.append(check(
         args.host,
         "ghcr",
-        "docker login ghcr.io --get-login 2>/dev/null || echo unauthenticated",
-        validate=lambda out: out != "unauthenticated" and "error" not in out.lower(),
+        'python3 -c "import json; d=json.load(open(\\"/home/ubuntu/.docker/config.json\\")); print(\\"authenticated\\" if \\"ghcr.io\\" in d.get(\\"auths\\",{}) else \\"unauthenticated\\")" 2>/dev/null || echo unauthenticated',
+        validate=lambda out: "authenticated" == out.strip() and "un" not in out.strip(),
         hint="Authenticate: echo $GHCR_TOKEN | docker login ghcr.io -u <user> --password-stdin",
     ))
 
@@ -115,8 +115,8 @@ def main() -> int:
     checks.append(check(
         args.host,
         "tailscale",
-        "tailscale status --self --json 2>/dev/null | head -c 200",
-        validate=lambda out: '"Online"' in out or '"online"' in out.lower(),
+        "tailscale status --self --json 2>/dev/null | python3 -c \"import sys,json; d=json.load(sys.stdin); print('Online' if d.get('Online') or d.get('Self',{}).get('Online') else 'Offline')\" 2>/dev/null || tailscale status --self 2>/dev/null | head -1",
+        validate=lambda out: "online" in out.lower(),
         hint="Start Tailscale: sudo tailscale up",
     ))
 
