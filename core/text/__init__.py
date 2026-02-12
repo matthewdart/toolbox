@@ -1,1 +1,0 @@
-"""Text-related capabilities."""

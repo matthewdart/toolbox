@@ -4,7 +4,7 @@ Contracts are the canonical, surface-agnostic definition of each capability.
 
 ## Contract Format (Canonical)
 
-Contracts live in `/contracts/<capability>.v1.json` and MUST include:
+Contracts live in `capabilities/<plugin_dir>/contract.v1.json` and MUST include:
 
 - `name`: capability id (e.g., `text.normalize_markdown`)
 - `description`: short description

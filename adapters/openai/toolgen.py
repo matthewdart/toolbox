@@ -1,23 +1,14 @@
-"""Generate OpenAI tool definitions from contracts."""
+"""Generate OpenAI tool definitions from capability contracts."""
 from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import Dict, Any, List
 
-CONTRACTS_DIR = Path(__file__).resolve().parents[2] / "contracts"
-OUTPUT_DIR = Path(__file__).resolve().parent
+from core.registry import CONTRACTS
 
-
-def _load_contracts() -> List[Dict[str, Any]]:
-    contracts: List[Dict[str, Any]] = []
-    for path in sorted(CONTRACTS_DIR.glob("*.v1.json")):
-        with path.open("r", encoding="utf-8") as handle:
-            contract = json.load(handle)
-        contracts.append(contract)
-    return contracts
+CAPABILITIES_DIR = Path(__file__).resolve().parents[2] / "capabilities"
 
 
 def _strip_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -37,9 +28,24 @@ def generate_tool(contract: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _find_capability_dir(capability_id: str) -> Path | None:
+    """Find the capability plugin directory for a given ID."""
+    for child in sorted(CAPABILITIES_DIR.iterdir()):
+        if not child.is_dir():
+            continue
+        contract_path = child / "contract.v1.json"
+        if not contract_path.is_file():
+            continue
+        with contract_path.open("r", encoding="utf-8") as f:
+            contract = json.load(f)
+        if contract.get("name") == capability_id:
+            return child
+    return None
+
+
 def write_tool(tool: Dict[str, Any], output_dir: Path) -> Path:
-    name = tool.get("function", {}).get("name", "unknown")
-    output_path = output_dir / f"{name}.json"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "openai.json"
     with output_path.open("w", encoding="utf-8") as handle:
         json.dump(tool, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -50,18 +56,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate OpenAI tool JSON files.")
     parser.add_argument(
         "--out-dir",
-        default=str(OUTPUT_DIR),
-        help="Output directory for tool JSON files",
+        default=None,
+        help="Output directory (default: write into each capability's adapters/ dir)",
     )
     args = parser.parse_args(argv)
 
-    output_dir = Path(args.out_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    contracts = _load_contracts()
-    for contract in contracts:
+    for capability_id, contract in sorted(CONTRACTS.items()):
         tool = generate_tool(contract)
-        write_tool(tool, output_dir)
+        if args.out_dir:
+            out = Path(args.out_dir)
+            out.mkdir(parents=True, exist_ok=True)
+            name = tool.get("function", {}).get("name", "unknown")
+            output_path = out / f"{name}.json"
+            with output_path.open("w", encoding="utf-8") as handle:
+                json.dump(tool, handle, indent=2, sort_keys=True)
+                handle.write("\n")
+        else:
+            cap_dir = _find_capability_dir(capability_id)
+            if cap_dir:
+                write_tool(tool, cap_dir / "adapters")
 
     return 0
 

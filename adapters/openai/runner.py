@@ -13,14 +13,19 @@ from dotenv import load_dotenv
 from adapters.openai.toolgen import main as toolgen_main
 from core.dispatch import dispatch
 
-TOOLS_DIR = Path(__file__).resolve().parent
+CAPABILITIES_DIR = Path(__file__).resolve().parents[2] / "capabilities"
 
 
 def _load_tools() -> List[Dict[str, Any]]:
+    """Discover OpenAI tool definitions from each capability's adapters/ dir."""
     tools = []
-    for path in sorted(TOOLS_DIR.glob("*.json")):
-        with path.open("r", encoding="utf-8") as handle:
-            tools.append(json.load(handle))
+    for cap_dir in sorted(CAPABILITIES_DIR.iterdir()):
+        if not cap_dir.is_dir():
+            continue
+        tool_path = cap_dir / "adapters" / "openai.json"
+        if tool_path.is_file():
+            with tool_path.open("r", encoding="utf-8") as handle:
+                tools.append(json.load(handle))
     return tools
 
 
@@ -58,7 +63,7 @@ def main() -> int:
 
     tools = _load_tools()
     if not tools:
-        raise SystemExit("no tools found in adapters/openai (run toolgen)")
+        raise SystemExit("no tools found in capabilities/*/adapters/ (run toolgen)")
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:

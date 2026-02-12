@@ -18,9 +18,10 @@ This repository contains a **capability‑first toolbox**.
 
 Agents assist with:
 
-* analysing existing skills
+* analysing existing skills and capabilities
 * discovering and extracting reusable capabilities
-* implementing those capabilities across Codex, OpenAI tools, and MCP
+* implementing capabilities as self-contained plugins
+* wiring adapters for Codex, OpenAI tools, and MCP
 
 The repository explicitly supports **both exploratory and stabilised work**.
 
@@ -73,9 +74,9 @@ Breaking changes REQUIRE acknowledgement.
 The following are authoritative, in descending order:
 
 1. Explicit user instructions
-2. docs/CONTRACT.md and declared authoritative documents
+2. CONTRACT.md and declared authoritative documents
 3. Repository documentation
-4. Approved capabilities and shared tooling
+4. Capability contracts (`capabilities/*/contract.v1.json`)
 5. Repository code
 
 If authoritative sources do not exist, agents MAY infer and propose them.
@@ -207,13 +208,21 @@ Agents MUST propose commands and effects first and wait for approval.
 
 ---
 
-## Skills, Capabilities, and Tooling
+## Capabilities and Plugins
+
+Each capability is a **self-contained plugin** under `capabilities/<name>/` containing:
+
+* `contract.v1.json` — canonical interface
+* `implementation.py` — surface-agnostic logic
+* `__init__.py` — plugin metadata (CAPABILITY_ID, ENTRY_POINT_MODULE, ENTRY_POINT_ATTR)
+* `README.md` — documentation
+* `adapters/` — surface-specific adapter files
 
 Rules:
 
 * If a capability exists, prefer using it over re‑implementation
-* Skills are treated as provisional primitives
-* Capabilities replace skills once stabilised
+* Skills under `skills/` are thin CLI wrappers that delegate to capabilities
+* The registry auto-discovers plugins — no manual wiring needed
 
 Agents SHOULD propose a new capability when:
 

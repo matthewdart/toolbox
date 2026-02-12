@@ -1,8 +1,6 @@
 """MCP stdio server for toolbox capabilities."""
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Dict, List
 
 from jsonschema import validators
@@ -10,19 +8,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 
 from core.dispatch import dispatch
-
-CONTRACTS_DIR = Path(__file__).resolve().parents[2] / "contracts"
-
-
-def _load_contracts() -> Dict[str, Dict[str, Any]]:
-    contracts: Dict[str, Dict[str, Any]] = {}
-    for path in sorted(CONTRACTS_DIR.glob("*.v1.json")):
-        with path.open("r", encoding="utf-8") as handle:
-            contract = json.load(handle)
-        name = contract.get("name")
-        if name:
-            contracts[name] = contract
-    return contracts
+from core.registry import CONTRACTS
 
 
 def _strip_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -42,14 +28,13 @@ def _validate(schema: Dict[str, Any], payload: Any) -> List[Dict[str, Any]]:
     ]
 
 
-contracts = _load_contracts()
 server = Server("toolbox")
 
 
 @server.list_tools()
 async def list_tools() -> List[Dict[str, Any]]:
     tools = []
-    for name, contract in contracts.items():
+    for name, contract in sorted(CONTRACTS.items()):
         tools.append(
             {
                 "name": name,
@@ -70,9 +55,9 @@ async def list_tools() -> List[Dict[str, Any]]:
 @server.call_tool()
 async def call_tool(name: str, arguments: Dict[str, Any]) -> Any:
     if name == "toolbox.list_capabilities":
-        return {"ok": True, "result": sorted(contracts.keys())}
+        return {"ok": True, "result": sorted(CONTRACTS.keys())}
 
-    contract = contracts.get(name)
+    contract = CONTRACTS.get(name)
     if not contract:
         return {
             "ok": False,
