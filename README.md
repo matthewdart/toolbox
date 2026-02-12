@@ -1,95 +1,209 @@
-# Toolbox
+# toolbox
 
-A capability-first toolbox with self-contained plugins and thin adapters for:
+A personal toolbox of small, deterministic scripts ("skills") used by humans and agents (e.g. Codex) to perform repeatable, side-effecting workflows.
 
-- OpenAI tool calling
-- MCP (stdio)
-- Codex skills
-- Local CLI
+This repository is intentionally boring, explicit, and reliable.
 
-## Architecture
+---
 
-Each capability is a **self-contained plugin** under `capabilities/`:
+## Purpose
 
-```
-capabilities/
-  text_normalize_markdown/
-    contract.v1.json     # canonical interface definition
-    implementation.py    # surface-agnostic logic
-    README.md            # capability documentation
-    adapters/
-      openai.json        # OpenAI tool definition
-      codex.md           # Codex adapter docs
-```
+toolbox exists to solve a specific problem:
 
-Shared infrastructure in `core/` auto-discovers plugins and provides dispatch + validation. Adapters in `adapters/` translate capabilities for each surface.
+Repeated workflows involving GitHub, files, and automation should not be re-implemented in prompts.
 
-## Quickstart
+Instead:
+- they are encoded once as skills
+- versioned
+- callable from scripts, Codex, CI, or SSH
+- and reused across projects
 
-### 1) Setup
+---
 
-```
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+## What is a "skill"?
 
-### 2) Generate OpenAI tool definitions
+In this repository, a skill is:
 
-```
-python -m adapters.openai.toolgen
-```
+- a single executable script
+- with a stable command-line interface
+- performing one well-defined side effect
+- deterministic given the same input
+- safe to call from Codex without reinterpretation
 
-### 3) Run a capability locally
+A skill is not:
+- a chat interface
+- an exploratory agent
+- a place for policy debate
+- stateful or interactive
 
-```
-python -m core.dispatch --capability text.normalize_markdown --input-json '{"text":"hello  \nworld"}'
-```
+Think: syscall, not assistant.
 
-### 4) Run MCP server (stdio)
+---
 
-```
-python -m adapters.mcp.server
-```
+## Repository structure
 
-### 5) Run OpenAI tool runner
+toolbox/
+- skills/        Executable skills (Codex is allowed to call these)
+- lib/           Shared helpers (logging, assertions, gh helpers, etc.)
+- templates/     Shared markdown / document templates
+- .github/       Reusable GitHub Actions workflows for CI/CD
+- AGENTS.md      Contract for agent behavior when using this repo
+- README.md
 
-```
-python -m adapters.openai.runner --message "Normalize this markdown: hello  \nworld"
-```
+---
 
-Set `OPENAI_API_KEY` in your environment or `.env` (see `.env.example`).
+## Available skills
 
-## Capabilities
+### Utility
 
-| Capability | Description |
-| --- | --- |
-| `bsport.list_offers` | Fetch upcoming bsport offers with filters |
-| `text.normalize_markdown` | Normalize markdown via whitespace rules |
-| `media.analyze_video` | Transcribe video + extract key slides (OpenAI) |
-| `media.download_video` | Download video from URL via yt-dlp |
-| `openai.calculate_usage_cost` | Summarize OpenAI usage logs + estimate costs |
-| `canvas.extract_markdown` | Extract markdown from ChatGPT Canvas URLs |
-| `gist.create_private` | Create secret GitHub Gists |
+- canvas_markdown: extract markdown from a ChatGPT canvas share URL. Usage: `canvas_markdown <url>` or `echo <url> | canvas_markdown` (use `-o <path>` to write a file, `-o auto` or a directory to use the title).
+- create_private_gist: create a private GitHub gist from files or stdin. Usage: `create_private_gist <file> [<file> ...]` or `cat input.txt | create_private_gist -f input.txt` (use `-d <desc>` for a description).
+- harmonytime_classes: fetch upcoming Harmony Time classes from the bsport scheduling API. Usage: `harmonytime_classes [--days 7] [--activity yoga] [--available-only] [--pretty]`.
 
-See `CAPABILITIES.md` for full details.
+### Deployment
 
-### Adding a new capability
+- deploy_compose: deploy Docker Compose services on a remote host via SSH. Usage: `deploy_compose --host <hostname> --compose-dir <path> [--services svc1 svc2] [--pull-only] [--dry-run]`.
+- stack_status: check Docker Compose service status on a remote host. Usage: `stack_status --host <hostname> --compose-dir <path> [--services svc1 svc2]`.
+- vm_bootstrap: preflight check for VM deployment readiness. Usage: `vm_bootstrap --host <hostname> [--compose-dir /opt/mcp]`.
+- ghcr_push: build a Docker image for linux/arm64 and push to GHCR. Usage: `ghcr_push --repo <owner/name> --context <path> [--tag latest] [--dry-run]`.
 
-1. Create `capabilities/<name>/` with `contract.v1.json`, `implementation.py`, `__init__.py`, and `README.md`
-2. The registry auto-discovers it — no manual wiring needed
-3. Run `python -m adapters.openai.toolgen` to generate the OpenAI adapter
+---
 
-## Docs
+## Reusable GitHub Actions workflows
 
-- `AGENTS.md` — agent rules
-- `CAPABILITIES.md` — capability registry
-- `CONTRACT.md` — contract format
-- `docs/openai.md` — OpenAI runner
-- `docs/mcp.md` — MCP server
+This repository provides reusable workflows that any project can reference:
 
-## Tests
+- **build-arm-image.yml**: build a Docker image for `linux/arm64` and push to GHCR.
+  ```yaml
+  jobs:
+    build:
+      uses: matthewdart/toolbox/.github/workflows/build-arm-image.yml@main
+      with:
+        image_name: my-service
+      secrets: inherit
+  ```
 
-```
-python -m unittest discover -s tests
-```
+- **deploy-stack.yml**: deploy services to the VM via Tailscale SSH.
+  ```yaml
+  jobs:
+    deploy:
+      uses: matthewdart/toolbox/.github/workflows/deploy-stack.yml@main
+      with:
+        services: my-service
+      secrets:
+        TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+  ```
+
+---
+
+## Design principles
+
+All skills in this repository MUST follow these rules:
+
+1. No sudo
+   Skills run as an unprivileged user. All system setup is out of scope.
+
+2. User-space only
+   No systemd, no package installs, no global filesystem mutation.
+
+3. Deterministic behavior
+   Same input produces the same output shape. No hidden prompts or interaction.
+
+4. Fail fast
+   Missing prerequisites (for example gh not authenticated) must error clearly.
+
+5. Explicit contracts
+   Inputs via stdin or flags. Outputs must be machine-consumable.
+
+---
+
+## Codex usage model
+
+Codex is expected to:
+
+- call skills directly
+- not re-implement their logic
+- not inline gh, git, or other workflows already encoded here
+
+Example instruction to Codex (conceptual):
+
+When capturing distilled content, use the create_handoff_gist skill.
+Do not call gh gist create directly.
+
+This contract is enforced via AGENTS.md.
+
+---
+
+## GitHub authentication
+
+Skills that interact with GitHub assume:
+
+- gh is installed
+- gh is already authenticated
+- authentication is provided by the environment (PAT, keychain, or CI token)
+
+Skills must not:
+- prompt for credentials
+- embed tokens
+- attempt gh auth login
+
+---
+
+## Networking and Tailscale
+
+- Tailscale is used only on machines we control (laptops, servers, VMs)
+- Deployment skills use Tailscale SSH for remote access to the Oracle VM
+- Skills may assume outbound network access where appropriate
+- Skills must not assume:
+  - private networking inside Codex Environments
+  - SSH access to Codex Environments
+
+Codex Environments are treated like locked-down CI runners.
+
+---
+
+## Installation and usage
+
+Typical usage pattern on a machine where Codex runs:
+
+Clone toolbox into a stable location, for example ~/toolbox, and add ~/toolbox/skills to PATH.
+
+Once installed, skills are invoked like normal commands, for example create_handoff_gist reading from stdin or a file.
+
+---
+
+## Versioning
+
+- This repository uses normal Git history
+- Individual skills evolve conservatively
+- Backwards-incompatible changes should be avoided or clearly documented
+
+---
+
+## What belongs here (and what does not)
+
+Belongs in toolbox:
+- GitHub automation
+- deployment orchestration (deploy, status, health checks)
+- handoff capture
+- normalization scripts
+- repeatable workflow glue
+
+Does not belong here:
+- project-specific logic
+- infrastructure definitions (docker-compose.yml, Dockerfiles)
+- exploratory scripts
+- system provisioning
+- long-running services
+
+---
+
+## Philosophy
+
+If Codex needs to do it more than once, and it has side effects, it belongs in toolbox.
+
+---
+
+## License
+
+Personal use. Adapt as needed.

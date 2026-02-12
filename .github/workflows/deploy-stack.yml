@@ -1,0 +1,73 @@
+name: Deploy to VM
+
+on:
+  workflow_call:
+    inputs:
+      services:
+        description: "Space-separated list of services to deploy (empty = all)"
+        required: false
+        type: string
+        default: ""
+      compose_dir:
+        description: "Path to docker-compose.yml directory on the VM"
+        required: false
+        type: string
+        default: /opt/mcp
+      vm_hostname:
+        description: "Tailscale hostname or IP of the target VM"
+        required: false
+        type: string
+        default: matthews-oracle-instance
+    secrets:
+      TAILSCALE_AUTHKEY:
+        description: "Tailscale auth key (ephemeral, reusable)"
+        required: true
+      VM_SSH_PRIVATE_KEY:
+        description: "SSH private key for the VM user"
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ""
+          oauth-secret: ""
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Set up SSH key
+        if: ${{ secrets.VM_SSH_PRIVATE_KEY != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "SSH_KEY_FLAG=-i ~/.ssh/id_deploy" >> "$GITHUB_ENV"
+
+      - name: Pull and deploy
+        run: |
+          SERVICES="${{ inputs.services }}"
+          HOST="${{ inputs.vm_hostname }}"
+          DIR="${{ inputs.compose_dir }}"
+
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=15 \
+              -o BatchMode=yes \
+              ${SSH_KEY_FLAG:-} \
+              "$HOST" \
+              "cd $DIR && docker compose pull $SERVICES && docker compose up -d $SERVICES"
+
+      - name: Verify deployment
+        run: |
+          HOST="${{ inputs.vm_hostname }}"
+          DIR="${{ inputs.compose_dir }}"
+          SERVICES="${{ inputs.services }}"
+
+          echo "=== Service status ==="
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              ${SSH_KEY_FLAG:-} \
+              "$HOST" \
+              "cd $DIR && docker compose ps $SERVICES"
