@@ -12,6 +12,19 @@ Agents are collaborators. Humans remain accountable for decisions.
 
 ---
 
+## Governance
+
+This repository conforms to the [handbook governance hierarchy](vendor/handbook/README.md):
+
+- [Manifesto](vendor/handbook/MANIFESTO.md) — values and selection pressures
+- [Tech Constitution](vendor/handbook/TECH_CONSTITUTION.md) — validity invariants
+- [Reference Architecture](vendor/handbook/REFERENCE_ARCHITECTURE.md) — ecosystem defaults
+- [Playbook](vendor/handbook/PLAYBOOK.md) — audits and agent exploitation model
+
+This repo uses **Tier 1 + mode system** workflow (Prototype default, Stabilised for mature capabilities).
+
+---
+
 ## Purpose
 
 This repository contains a **capability‑first toolbox**.
