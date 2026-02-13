@@ -17,6 +17,11 @@ on:
         required: false
         type: string
         default: matthews-oracle-instance
+      vm_user:
+        description: "SSH user on the target VM"
+        required: false
+        type: string
+        default: ubuntu
     secrets:
       TAILSCALE_AUTHKEY:
         description: "Tailscale auth key (ephemeral, reusable)"
@@ -36,7 +41,7 @@ jobs:
 
       - name: Ensure deploy directory exists
         run: |
-          HOST="${{ inputs.vm_hostname }}"
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=15 \
@@ -46,7 +51,7 @@ jobs:
 
       - name: Sync docker-compose.yml to VM
         run: |
-          HOST="${{ inputs.vm_hostname }}"
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
           scp -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
@@ -55,7 +60,7 @@ jobs:
 
       - name: Pull and deploy
         run: |
-          HOST="${{ inputs.vm_hostname }}"
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=15 \
@@ -65,7 +70,7 @@ jobs:
 
       - name: Verify deployment
         run: |
-          HOST="${{ inputs.vm_hostname }}"
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
           echo "=== Service status ==="
           ssh -o StrictHostKeyChecking=no \
