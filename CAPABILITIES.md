@@ -28,6 +28,7 @@ capabilities/<capability_dir>/
 | `openai.calculate_usage_cost` | `openai_calculate_usage_cost` | OpenAI, MCP, CLI | Summarize OpenAI usage logs and estimate costs |
 | `canvas.extract_markdown` | `canvas_extract_markdown` | OpenAI, MCP, CLI | Extract markdown from a ChatGPT Canvas shared URL |
 | `gist.create_private` | `gist_create_private` | OpenAI, MCP, CLI | Create a secret GitHub Gist from files or inline content |
+| `browser.export_cookies` | `browser_export_cookies` | MCP, CLI | Export browser cookies to a Netscape cookies.txt file |
 
 ---
 
@@ -150,6 +151,22 @@ python -m core.dispatch --capability gist.create_private --input-json '{"content
 ---
 
 ## Legacy Skills
+
+---
+
+## `browser.export_cookies`
+
+Export browser cookies for a domain to a Netscape-format cookies.txt file. Pairs with `media.download_video` for login-gated sites.
+
+- **Plugin**: `capabilities/browser_export_cookies/`
+- **Contract**: `capabilities/browser_export_cookies/contract.v1.json`
+- **Implementation**: `capabilities/browser_export_cookies/implementation.py`
+
+### CLI usage
+
+```bash
+python -m core.dispatch --capability browser.export_cookies --input-json '{"browser":"safari","domain":"brighttalk.com","output":"/tmp/cookies.txt"}'
+```
 
 The following Codex skills remain under `skills/` as thin CLI wrappers:
 

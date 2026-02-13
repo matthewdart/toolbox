@@ -35,6 +35,22 @@ If you have a webinar/video URL (not a local file yet), download it first:
 .venv/bin/python -m core.dispatch --capability media.download_video --input-json '{"url":"https://example.com/video"}'
 ```
 
+### Login-gated sites
+
+For sites that require authentication (e.g. BrightTalk webinars), export browser cookies first using the `browser.export_cookies` capability, then pass the cookies file to the download:
+
+```bash
+# Export cookies from Safari for the target domain
+.venv/bin/python -m core.dispatch --capability browser.export_cookies --input-json '{"browser":"safari","domain":"brighttalk.com","output":"/tmp/brighttalk.cookies.txt"}'
+
+# Download using the exported cookies
+.venv/bin/python -m core.dispatch --capability media.download_video --input-json '{"url":"https://example.com/video","cookies_path":"/tmp/brighttalk.cookies.txt"}'
+```
+
+> **Security note:** treat cookies.txt files like passwords. Do not commit them.
+
+## Outputs
+
 Outputs default to `./<video_stem>_analysis/`:
 
 - `transcript.txt`
@@ -53,7 +69,7 @@ Outputs default to `./<video_stem>_analysis/`:
 ## Notes
 
 - If `ffmpeg` is not installed, the capability uses `imageio-ffmpeg` to download a compatible ffmpeg binary. You can override by setting `FFMPEG_BIN`/`FFPROBE_BIN`.
-- Defaults target “reasonable cost”: extracted frames are sampled evenly and capped with `max_frames` before calling the vision model.
+- Defaults target "reasonable cost": extracted frames are sampled evenly and capped with `max_frames` before calling the vision model.
 - Slide OCR stability: use a lower `--vision-temperature` (default `0.0`) and a stronger `--vision-model` (default `gpt-4.1`).
 - Duplicate slides: tune `--dedupe-window-seconds`, `--dedupe-min-token-cover`, and `--dedupe-min-seq-ratio` if you see repeated slides due to multiple frames on the same slide.
 - Reruns: `slides.json` is overwritten and `key_slides/slide_*` outputs from prior runs are removed so the folder matches the JSON.
