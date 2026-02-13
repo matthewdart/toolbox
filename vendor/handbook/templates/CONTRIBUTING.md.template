@@ -1,0 +1,45 @@
+# Contributing
+
+## Source of truth
+
+Before implementing any change, read:
+<!-- REPO-SPECIFIC: List authoritative docs. Examples:
+- docs/CONTRACT.md
+- docs/requirements/index.md
+- docs/acceptance/index.md
+- docs/architecture/index.md
+- docs/adrs/*
+-->
+
+## Environment setup
+
+<!-- REPO-SPECIFIC: How to set up a development environment. Examples:
+- `npm install` / `pip install -e .` / etc.
+- Required tools and versions
+- Environment variables or config files
+-->
+
+## Testing
+
+<!-- REPO-SPECIFIC: How to run tests. Examples:
+- `npm run test` — unit tests
+- `npm run test:integration` — integration tests (requires API keys)
+-->
+
+## Ticket and PR discipline
+
+<!-- REPO-SPECIFIC: Rules for issues and PRs. Adapt to your needs:
+- Reference requirement IDs or issue numbers
+- Include tests where practical
+- Close issues only after relevant changes are committed
+-->
+
+## Safety
+
+- Never commit .env files or secrets
+- Prefer user-level installs over sudo
+
+<!-- REPO-SPECIFIC: Add project-specific safety rules. Examples:
+- Read-only device access only (no device mutation)
+- LLM boundaries (e.g. LLMs for OCR only, not for deterministic transforms)
+-->

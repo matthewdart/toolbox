@@ -1,0 +1,16 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Read [AGENTS.md](AGENTS.md) for full agent instructions.
+
+## Claude-Specific Notes
+
+<!-- REPO-SPECIFIC: Only items unique to Claude Code that don't belong in AGENTS.md.
+     Examples:
+     - AWS Bedrock cross-region inference profile IDs
+     - Tailwind CSS config awareness notes
+     - Claude-specific tool or MCP hints
+
+     If no Claude-specific notes exist, use:
+     No additional notes. See AGENTS.md for all agent instructions. -->

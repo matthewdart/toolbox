@@ -1,0 +1,218 @@
+# AGENTS.md
+
+This document defines how AI coding agents must operate in this repository.
+
+<!-- REPO-SPECIFIC: Replace with one-line project description -->
+
+Agents are collaborators operating under explicit constraints.
+They may execute changes, but humans remain accountable for decisions.
+
+---
+
+## Governance
+
+This repository conforms to the [handbook governance hierarchy](vendor/handbook/README.md):
+
+- [Manifesto](vendor/handbook/MANIFESTO.md) — values and selection pressures
+- [Tech Constitution](vendor/handbook/TECH_CONSTITUTION.md) — validity invariants
+- [Reference Architecture](vendor/handbook/REFERENCE_ARCHITECTURE.md) — ecosystem defaults
+- [Playbook](vendor/handbook/PLAYBOOK.md) — audits and agent exploitation model
+
+<!-- If not vendored, replace vendor/handbook/ paths with:
+     https://github.com/matthewdart/handbook/blob/main/ -->
+
+---
+
+## Source of Truth
+
+The following are authoritative, in descending order:
+
+1. Explicit user instructions
+2. <!-- REPO-SPECIFIC: authoritative docs, e.g. docs/CONTRACT.md, SPEC.md, requirements/ -->
+3. GitHub Issues
+4. Repository documentation
+5. Repository code
+
+Agents must not override authoritative sources without explicit acknowledgement.
+
+---
+
+## Non-Negotiable Rules
+
+<!-- REPO-SPECIFIC: Hard constraints for this project. Examples:
+
+1. No silent scope expansion
+   - Do not introduce new behaviour, scope, or assumptions without acknowledgement.
+
+2. Side effects must be surfaced
+   - Tier 1: state side effects and assumptions inline.
+   - Tier 2: identify, resolve, and document all side effects.
+
+3. Requirements-first, not code-first
+   - Do not implement changes that knowingly contradict requirements.
+
+Add project-specific rules here (e.g. "NEVER run npm run dev",
+"read-only device access only", "never modify AI prompts"). -->
+
+---
+
+## Operating Mode
+
+<!-- IF APPLICABLE: Use this section for repos that contain both experimental
+     and stable work. Omit for single-tier repos.
+
+### Prototype Mode (default)
+- Speed over ceremony
+- Assumptions allowed but must be stated
+- Issues, plans, and ADRs are optional
+- Breaking changes allowed
+
+### Stabilised Mode
+- Explicit contracts and versioning
+- Documentation required alongside code
+- Side effects must be resolved and recorded
+- Breaking changes require acknowledgement
+-->
+
+---
+
+## Workflow
+
+<!-- REPO-SPECIFIC: Declare the workflow tier for this repo.
+     Choose ONE of the following and delete the other. -->
+
+<!-- TIER 1 (lightweight) — for experimental, small, or single-purpose repos:
+
+### Workflow
+
+For every request:
+1. Read relevant context (authoritative docs, related code)
+2. State assumptions and understanding
+3. Propose changes (describe intended approach and effects)
+4. Apply changes (docs + code + tests together)
+
+If the request is ambiguous or introduces new scope, ask before proceeding.
+-->
+
+<!-- TIER 2 (structured) — for repos with requirements, acceptance criteria,
+     device safety, or stability contracts:
+
+### Mandatory workflow for every request
+
+#### Step A — Load context
+Before making changes, review authoritative docs, relevant requirements,
+acceptance criteria, ADRs, and GitHub Issues.
+
+#### Step B — Interpret the request
+State clearly: what the request means, what is explicitly requested,
+which requirements and acceptance criteria are impacted.
+
+#### Step B.1 — Capture exploration (conditional)
+If the request enters Research Phase or has multiple viable approaches:
+create or update a plan doc and link from a GitHub Issue.
+
+#### Step C — Impact and side-effect analysis
+Identify: conflicts with requirements, ambiguities, architectural trade-offs,
+side effects or knock-on impacts.
+
+#### Step D — Resolve and document side effects (mandatory)
+All identified side effects must be resolved — update docs, create ADRs,
+adjust tests, document assumptions.
+
+#### Step E — Confirmation rules
+- Proceed without reconfirmation if: unambiguous, side effects resolved,
+  authoritative sources not contradicted.
+- Explicit confirmation required if: new scope, multiple interpretations,
+  requirements must change, elevated privileges needed.
+
+#### Step F — Apply changes
+Apply docs, code, and tests once conditions are met.
+
+### Decision phases
+
+Agents must distinguish between and explicitly signal:
+- **Research Phase** — explore, surface assumptions, avoid implementation
+- **Convergence Phase** — select and justify approach, explain rejections
+- **Execution Phase** — apply confirmed decisions, minimise exploration
+-->
+
+---
+
+## Development Commands
+
+<!-- REPO-SPECIFIC: Build, test, lint, format commands. Example:
+
+- `npm run build` — production build
+- `npm run test` — run unit tests
+- `npm run lint` — run linter
+- `npm run format` — format code
+-->
+
+---
+
+## Architecture
+
+<!-- REPO-SPECIFIC: For complex repos, point to docs/ARCHITECTURE.md.
+     For simple repos, a brief inline summary is sufficient.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+-->
+
+---
+
+## Conventions
+
+<!-- REPO-SPECIFIC: For complex repos, point to docs/CONVENTIONS.md.
+     For simple repos, list key conventions inline.
+
+See [docs/CONVENTIONS.md](docs/CONVENTIONS.md) for code style and conventions.
+-->
+
+---
+
+## Execution Environment
+
+### Codex / sandboxed environments
+
+Assume:
+- no sudo
+- no systemd or persistent services
+- no package installation
+- no inbound networking
+
+All work must be achievable using preinstalled tools and repository contents.
+
+### User-controlled environments
+
+Broader execution is permitted, but:
+- sudo, system modification, or persistent services require explicit confirmation
+- agents must describe intended commands and effects before execution
+- destructive or irreversible actions are never assumed safe
+
+---
+
+## Session Capture
+
+When a task introduces decisions, assumptions, or requirement impacts:
+- capture them in durable artefacts (docs, ADRs, issues, plan docs)
+- chat history is not a durable source of truth
+
+---
+
+## Safe Defaults
+
+- Default to minimal, well-scoped changes
+- Default to propose-first when execution risk increases
+- Default to transparency and traceability
+- Default to resolving and documenting side effects
+
+---
+
+## Final Rule
+
+Agents assist.
+Humans decide.
+<!-- REPO-SPECIFIC: Add closing line. Examples:
+     "Documents and issues define truth."
+     "Capabilities evolve."
+     "SPEC.md is authoritative." -->
