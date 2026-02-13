@@ -3,16 +3,15 @@ name: Deploy to VM
 on:
   workflow_call:
     inputs:
-      services:
-        description: "Space-separated list of services to deploy (empty = all)"
+      service_name:
+        description: "Service name — deploys to /opt/<service_name>/ on the VM"
+        required: true
+        type: string
+      compose_file:
+        description: "Path to docker-compose.yml in the calling repo"
         required: false
         type: string
-        default: ""
-      compose_dir:
-        description: "Path to docker-compose.yml directory on the VM"
-        required: false
-        type: string
-        default: /opt/mcp
+        default: docker-compose.yml
       vm_hostname:
         description: "Tailscale hostname or IP of the target VM"
         required: false
@@ -27,31 +26,49 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Pull and deploy
+      - name: Ensure deploy directory exists
         run: |
-          SERVICES="${{ inputs.services }}"
           HOST="${{ inputs.vm_hostname }}"
-          DIR="${{ inputs.compose_dir }}"
-
+          DIR="/opt/${{ inputs.service_name }}"
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=15 \
               -o BatchMode=yes \
               "$HOST" \
-              "cd $DIR && docker compose pull $SERVICES && docker compose up -d $SERVICES"
+              "sudo mkdir -p $DIR && sudo chown \$(whoami) $DIR"
+
+      - name: Sync docker-compose.yml to VM
+        run: |
+          HOST="${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          scp -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              "${{ inputs.compose_file }}" \
+              "$HOST:$DIR/docker-compose.yml"
+
+      - name: Pull and deploy
+        run: |
+          HOST="${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=15 \
+              -o BatchMode=yes \
+              "$HOST" \
+              "cd $DIR && docker compose pull && docker compose up -d"
 
       - name: Verify deployment
         run: |
           HOST="${{ inputs.vm_hostname }}"
-          DIR="${{ inputs.compose_dir }}"
-          SERVICES="${{ inputs.services }}"
-
+          DIR="/opt/${{ inputs.service_name }}"
           echo "=== Service status ==="
           ssh -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
               "$HOST" \
-              "cd $DIR && docker compose ps $SERVICES"
+              "cd $DIR && docker compose ps"

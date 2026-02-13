@@ -20,8 +20,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--compose-dir",
-        default="/opt/mcp",
-        help="Expected compose directory on the remote host (default: /opt/mcp)",
+        nargs="+",
+        default=[
+            "/opt/remarkable-pipeline",
+            "/opt/health-ledger",
+            "/opt/archi-mcp-bridge",
+        ],
+        help="Compose directories to check on the remote host (default: all MCP service dirs)",
     )
     return parser.parse_args()
 
@@ -120,29 +125,31 @@ def main() -> int:
         hint="Start Tailscale: sudo tailscale up",
     ))
 
-    # 6. Compose directory exists with docker-compose.yml
-    checks.append(check(
-        args.host,
-        "compose_dir",
-        f"test -f {args.compose_dir}/docker-compose.yml && echo exists",
-        validate=lambda out: "exists" in out,
-        hint=f"Create {args.compose_dir}/ with docker-compose.yml",
-    ))
+    # 6-7. Per-service directory checks
+    for compose_dir in args.compose_dir:
+        dir_label = compose_dir.rstrip("/").rsplit("/", 1)[-1]
 
-    # 7. .env file present
-    checks.append(check(
-        args.host,
-        "env_file",
-        f"test -f {args.compose_dir}/.env && echo exists",
-        validate=lambda out: "exists" in out,
-        hint=f"Create {args.compose_dir}/.env from .env.example",
-    ))
+        checks.append(check(
+            args.host,
+            f"compose_dir:{dir_label}",
+            f"test -f {compose_dir}/docker-compose.yml && echo exists",
+            validate=lambda out: "exists" in out,
+            hint=f"Create {compose_dir}/ with docker-compose.yml",
+        ))
+
+        checks.append(check(
+            args.host,
+            f"env_file:{dir_label}",
+            f"test -f {compose_dir}/.env && echo exists",
+            validate=lambda out: "exists" in out,
+            hint=f"Create {compose_dir}/.env from .env.example",
+        ))
 
     all_ok = all(c["status"] == "ok" for c in checks)
 
     result = {
         "host": args.host,
-        "compose_dir": args.compose_dir,
+        "compose_dirs": args.compose_dir,
         "all_ok": all_ok,
         "checks": {c["check"]: c["status"] for c in checks},
         "details": checks,

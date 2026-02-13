@@ -10,7 +10,7 @@ Verify (not install) that a remote VM has the required prerequisites for the MCP
 ## Run
 
 - Run `scripts/vm_bootstrap.py --host <hostname>` to check all prerequisites.
-- Use `--compose-dir <path>` to specify the compose directory (default: `/opt/mcp`).
+- Use `--compose-dir <path> [<path> ...]` to specify compose directories (default: `/opt/remarkable-pipeline /opt/health-ledger /opt/archi-mcp-bridge`).
 
 ## Checks
 
@@ -19,12 +19,13 @@ Verify (not install) that a remote VM has the required prerequisites for the MCP
 - ARM architecture (`aarch64`)
 - GHCR authentication (`docker login ghcr.io`)
 - Tailscale running
-- Compose directory exists with `docker-compose.yml`
-- `.env` file present
+- Per-service directory checks (for each `--compose-dir`):
+  - `docker-compose.yml` exists
+  - `.env` file present
 
 ## Output
 
-JSON to stdout: `{"docker": "ok|missing", "compose": "ok|missing", "arch": "ok|unexpected", "ghcr": "ok|unauthenticated", "tailscale": "ok|missing", "compose_dir": "ok|missing", "env_file": "ok|missing"}`.
+JSON to stdout with `all_ok` flag, per-check status, and details.
 
 Remediation hints printed to stderr for any failures.
 
