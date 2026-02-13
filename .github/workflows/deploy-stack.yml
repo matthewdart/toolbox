@@ -22,29 +22,15 @@ on:
       TAILSCALE_AUTHKEY:
         description: "Tailscale auth key (ephemeral, reusable)"
         required: true
-      VM_SSH_PRIVATE_KEY:
-        description: "SSH private key for the VM user"
-        required: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
+        uses: tailscale/github-action@v4
         with:
-          oauth-client-id: ""
-          oauth-secret: ""
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          version: latest
-
-      - name: Set up SSH key
-        if: ${{ secrets.VM_SSH_PRIVATE_KEY != '' }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          echo "SSH_KEY_FLAG=-i ~/.ssh/id_deploy" >> "$GITHUB_ENV"
 
       - name: Pull and deploy
         run: |
@@ -55,7 +41,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=15 \
               -o BatchMode=yes \
-              ${SSH_KEY_FLAG:-} \
               "$HOST" \
               "cd $DIR && docker compose pull $SERVICES && docker compose up -d $SERVICES"
 
@@ -68,6 +53,5 @@ jobs:
           echo "=== Service status ==="
           ssh -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
-              ${SSH_KEY_FLAG:-} \
               "$HOST" \
               "cd $DIR && docker compose ps $SERVICES"
