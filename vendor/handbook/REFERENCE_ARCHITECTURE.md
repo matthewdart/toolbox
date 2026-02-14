@@ -609,7 +609,62 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 
 ---
 
-## 12. Living Status
+## 12. Ecosystem Repository Map
+
+The ecosystem is composed of repositories that fall into three categories: **governance**, **infrastructure**, and **project**. Agents working in any repo should understand the overall map — particularly which repos provide shared services that other repos depend on.
+
+### 12.1 Governance
+
+| Repository | Purpose |
+|---|---|
+| **handbook** | Governance upstream — Manifesto, Constitution, Reference Architecture, Playbook, Owner Preferences, templates, audits. Vendored into all project repos via `git subtree` at `vendor/handbook/`. |
+
+### 12.2 Infrastructure
+
+| Repository | Purpose | Consumed by |
+|---|---|---|
+| **toolbox** | Reusable skills (executable scripts) and GitHub Actions workflows (`build-arm-image.yml`, `deploy-stack.yml`). Skills are callable from CLI, CI, or agents. | All repos that build ARM images or deploy to the VM reference toolbox workflows. Skills are installed on development machines and the VM. |
+| **mcp-infra** | Docker Compose stack on Oracle Cloud ARM VM. Defines how all MCP services are orchestrated in production — Cloudflare Tunnel ingress, `mcp-internal` Docker network, per-service configuration. | All MCP server repos (remarkable-pipeline, health-ledger-mcp, archi-mcp-bridge, pptx-mcp-bridge) run here as containers. |
+
+> **Planned rename:** `mcp-infra` → `infrastructure`. The repo already manages general deployment infrastructure (Cloudflare Tunnel, Tailscale sidecar, Docker Compose orchestration), not just MCP services.
+
+### 12.3 Project Repositories
+
+| Repository | Purpose | Tier |
+|---|---|---|
+| **remarkable-pipeline** | reMarkable tablet data pipeline — ingestion, rendering, OCR, MCP server | Tier 2 |
+| **health-ledger-mcp** | Apple Health analytics — SQL data layer and MCP server | Tier 1 |
+| **health-ledger** | Apple Health export ingestion and SQL gateway (upstream of health-ledger-mcp) | Tier 2 |
+| **archi-mcp-bridge** | ArchiMate modelling tool MCP bridge via jArchi | Tier 1 |
+| **pptx-mcp-bridge** | PowerPoint MCP bridge via Office.js add-in | Tier 2 |
+| **obsidian-copilot** | Obsidian plugin — AI copilot for knowledge management | Tier 1 |
+| **obsidian-atlas** | Obsidian plugin — visual knowledge graph | Tier 1 |
+| **obsidian-california** | Obsidian plugin — early stage | Tier 1 |
+| **archi-scripts** | Utility scripts for Archi modelling tool | Tier 1 |
+| **pipeline-template** | Template repo for new pipeline-style projects | Tier 2 |
+
+### 12.4 Relationships
+
+```
+handbook (governance)
+  └── vendored into all repos at vendor/handbook/
+
+toolbox (infrastructure)
+  ├── .github/workflows/  → referenced by project repo CI/CD
+  └── skills/             → installed on dev machines and VM
+
+mcp-infra (infrastructure)
+  └── docker-compose.yml  → orchestrates project repo containers in production
+
+project repos
+  ├── consume handbook (vendored)
+  ├── consume toolbox workflows (CI reference)
+  └── run inside mcp-infra (production containers)
+```
+
+---
+
+## 13. Living Status
 
 This reference architecture is expected to evolve more slowly than playbooks, but faster than the constitution.
 
