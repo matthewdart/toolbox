@@ -7,6 +7,21 @@ description: Retrieve secrets from the macOS login keychain. Use when a capabili
 
 When a capability requires a secret that isn't set in the environment, check the macOS login keychain before asking the user.
 
+## IMPORTANT: export once, use the env var
+
+**Always `export` secrets as env vars on first retrieval.** The keychain triggers a macOS approval prompt on every read — do not call `security find-generic-password -w` repeatedly. Export all needed env vars from a keychain entry in a single Bash call at the start, then use `$ENV_VAR` for all subsequent commands in the session.
+
+```bash
+# CORRECT: export once, then use the env var
+export OPENAI_API_KEY="$(security find-generic-password -s 'OpenAI API Key' -a 'my-project' -w 2>/dev/null)"
+# ... later ...
+python -m core.dispatch --capability media.analyze_video --input-json "{\"video_path\": \"$PATH\", ...}"
+# OPENAI_API_KEY is already in the environment — the capability reads it from os.environ
+
+# WRONG: calling security every time the secret is needed
+python -m core.dispatch ... --api-key "$(security find-generic-password -s 'OpenAI API Key' -w)"
+```
+
 ## What belongs in the keychain
 
 Only store **actual secrets** — values that grant access or authenticate:
