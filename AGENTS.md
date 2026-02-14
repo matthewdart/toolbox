@@ -20,6 +20,7 @@ This repository conforms to the [handbook governance hierarchy](vendor/handbook/
 - [Tech Constitution](vendor/handbook/TECH_CONSTITUTION.md) — validity invariants
 - [Reference Architecture](vendor/handbook/REFERENCE_ARCHITECTURE.md) — ecosystem defaults
 - [Playbook](vendor/handbook/PLAYBOOK.md) — audits and agent exploitation model
+- [Owner Preferences](vendor/handbook/OWNER_PREFERENCES.md) — cross-repo conventions, patterns, and tool choices
 
 This repo uses **Tier 1 + mode system** workflow (Prototype default, Stabilised for mature capabilities).
 
