@@ -2,8 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Read [AGENTS.md](AGENTS.md) for full agent instructions.
+@AGENTS.md
+
+## Owner Preferences
+
+@vendor/handbook/OWNER_PREFERENCES.md
 
 ## Claude-Specific Notes
 
-No additional notes. See AGENTS.md for all agent instructions.
+No additional notes.
