@@ -23,6 +23,17 @@ This repository conforms to the [handbook governance hierarchy](vendor/handbook/
 
 This repo uses **Tier 1 + mode system** workflow (Prototype default, Stabilised for mature capabilities).
 
+### Handbook version check
+
+Before starting a session, verify the vendored handbook is current:
+
+```
+cat vendor/handbook/VERSION
+```
+
+If stale, note it to the user. Updates are pulled via:
+`git subtree pull --prefix vendor/handbook https://github.com/matthewdart/handbook.git master --squash`
+
 ---
 
 ## Purpose
