@@ -104,6 +104,10 @@ For the full ecosystem repository map — which repos exist, what they do, and h
 - Oracle Cloud VM as hosting platform
 - Tailscale for SSH connectivity and inter-service communication
 - GitHub Actions for CI/CD, with reusable workflows in `toolbox` repo
+- `/opt/<service>/` as VM deployment root per service
+- Bind-mount volumes at `./data` (not named Docker volumes)
+- One Cloudflare Tunnel token per service (dashboard-configured routing)
+- Cloudflare MCP Portal as default client entry point for MCP services
 - No Kubernetes — standalone containers everywhere
 - No shared Docker networks or multi-service compose orchestration
 - No Terraform/IaC — manual VM setup with shell scripts

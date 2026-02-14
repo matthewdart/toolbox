@@ -584,6 +584,16 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 
 * Any container-internal persistence requires explicit justification.
 
+**Preferred Realisation — Host Data Directory**
+
+* Host path: `/opt/<service>/data/` bind-mounted into the container
+* Standard subdirectories:
+  - `input/` — user-provided or externally sourced data (read-only from the service's perspective)
+  - `output/` — generated, derived, or processed data
+  - `workspace/` — runtime state, caches, temporary files
+* Bind mounts (not named Docker volumes) are the default — preserves inspectability, portability, and direct shell access
+* The host directory is the system of record for persistent state
+
 ---
 
 ### 11.5 Networking & Exposure
@@ -606,6 +616,73 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 **Rationale**
 
 * Maintains a single, consistent threat model
+
+---
+
+### 11.6 Cloudflare Tunnel Sidecar Pattern
+
+**Default**
+
+* Containerised services SHOULD be exposed via Cloudflare Tunnels.
+* Each service deploys its own `cloudflared` sidecar container alongside the application container.
+* One tunnel per service, configured via `TUNNEL_TOKEN` from the Cloudflare dashboard.
+
+**Rationale**
+
+* Independent lifecycle — services deploy, update, and fail independently
+* No shared network namespace required between unrelated services
+* Tunnel configuration (hostname routing) lives in the Cloudflare dashboard, not in local config files
+
+**Networking Strategies**
+
+Two strategies exist based on service requirements:
+
+* **Shared namespace** (`network_mode: "service:<app>"`) — `cloudflared` joins the app container's network namespace. App can bind to `localhost`. Used when the service only needs to serve HTTP.
+* **Host networking** (`network_mode: host`) — both app and `cloudflared` use host networking. Required when the app needs access to host-level resources (e.g. Tailscale for SSH to devices).
+
+**Expected Fit**
+
+* Each service repo ships a self-contained `docker-compose.yml` with both app and `cloudflared` services
+* Each service has its own `CF_TUNNEL_TOKEN` in its `.env` file
+* No shared Docker network between unrelated services
+
+**Deviation Guidance**
+
+* A centralised model (single `cloudflared` for multiple services) is permitted when services genuinely share state or must coordinate startup order
+* The coupling must be explicit and justified
+
+---
+
+### 11.7 MCP Server Aggregation (Cloudflare MCP Portal)
+
+**Default**
+
+* MCP servers exposed via Cloudflare Tunnels SHOULD be aggregated behind a Cloudflare MCP Portal.
+* The portal provides a single endpoint URL that clients configure instead of multiple per-service URLs.
+
+**Rationale**
+
+* Single client configuration point
+* Centralised access control and audit logging
+* Zero Trust policies (identity, device posture, MFA)
+* Automatic capability discovery and synchronisation
+
+**Expected Fit**
+
+* Portals are configured in Cloudflare One → Access → AI Controls
+* Each MCP server is registered in the portal with appropriate permissions and access policies
+* The portal URL is distributed to clients; per-service URLs are not
+
+**Relationship to Tunnels**
+
+* Cloudflare Tunnels provide connectivity (service → internet)
+* Cloudflare MCP Portals provide aggregation and access control (multiple MCP services → one client endpoint)
+* Both layers are complementary, not alternatives
+
+**Deviation Guidance**
+
+* Direct per-service URLs are acceptable for development and debugging only
+* Production client access SHOULD go through the portal
 
 ---
 
@@ -658,12 +735,12 @@ handbook (governance)
 
 toolbox (infrastructure)
   ├── .github/workflows/  → referenced by project repo CI/CD
-  └── skills/             → installed on dev machines and VM
+  └── skills/             → queryable agent interface to VM and cloud state
 
-project repos
+project repos (self-deploying)
   ├── consume handbook (vendored)
   ├── consume toolbox workflows (CI reference)
-  └── deploy independently to the VM as standalone containers
+  └── ship docker-compose.yml + cloudflared sidecar, deploy themselves
 ```
 
 ---
