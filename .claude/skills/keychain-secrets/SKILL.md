@@ -1,11 +1,21 @@
 ---
 name: keychain-secrets
-description: Retrieve secrets from the macOS login keychain. Use when a capability or command needs a secret (API key, token, account ID) that isn't already in the environment.
+description: Retrieve secrets from the macOS login keychain. Use when a capability or command needs a secret (API key, token, password) that isn't already in the environment.
 ---
 
 # Keychain Secrets
 
 When a capability requires a secret that isn't set in the environment, check the macOS login keychain before asking the user.
+
+## What belongs in the keychain
+
+Only store **actual secrets** — values that grant access or authenticate:
+
+- API keys and tokens
+- Passwords and auth keys
+- Private keys and client secrets
+
+**Do not store** non-secret configuration values like account IDs, email addresses, project names, or URLs. These should be passed as capability inputs, stored in config files, or derived from keychain metadata (see "Deriving related values" below).
 
 ## Retrieving a secret
 
@@ -61,7 +71,7 @@ Common patterns:
 
 | Provider | Credential types |
 |---|---|
-| Cloudflare | `Global API Key`, `API Token`, `Account ID` |
+| Cloudflare | `Global API Key`, `API Token` |
 | OpenAI | `API Key` |
 | GitHub | `Classic Personal Access Token`, `Fine-Grained Personal Access Token` |
 | Tailscale | `Auth Key` |
@@ -74,12 +84,14 @@ Examples: `Cloudflare Global API Key`, `OpenAI API Key`, `GitHub Classic Persona
 
 ### Account name (`-a`)
 
-The account identifies **which account or identity** the credential belongs to:
+The account field identifies **which account or identity** the credential belongs to. Use the most useful identifier for the context — this may also serve as a non-secret config value that capabilities need alongside the secret:
 
+- An account ID: `538fc7...` (e.g. Cloudflare account ID needed as `CLOUDFLARE_ACCOUNT_ID`)
 - An email address: `user@example.com`
 - A username: `myusername`
 - A service/project name: `My Project`
-- A descriptive name: `personal`, `work`
+
+When the account field carries a value that maps to an env var, document the mapping in the comment field (see below).
 
 ### Env var mapping
 
@@ -88,23 +100,29 @@ The env var name is derived from the service name by converting to `SCREAMING_SN
 | Service name | Derived env var |
 |---|---|
 | `Cloudflare API Token` | `CLOUDFLARE_API_TOKEN` |
-| `Cloudflare Account ID` | `CLOUDFLARE_ACCOUNT_ID` |
 | `OpenAI API Key` | `OPENAI_API_KEY` |
 | `Tailscale Auth Key` | `TAILSCALE_AUTH_KEY` |
 
-### Comment field (`-j`) — resolving ambiguity
+### Comment field (`-j`) — hints and metadata mappings
 
-**Always** store an `env:VAR_NAME` hint in the comment field when:
+The comment field documents how to map keychain fields to env vars. It supports multiple space-separated hints:
+
+- `env:VAR_NAME` — the env var for the **password** (overrides SCREAMING_SNAKE_CASE)
+- `acct:VAR_NAME` — the env var for the **account field**
+- `email:VALUE` — an associated email address (useful when the account field holds something else)
+
+**Always** populate the comment field when:
 
 - The SCREAMING_SNAKE_CASE conversion doesn't match the conventional env var name
-- The credential is used with a non-obvious env var name
+- The account field carries a value that maps to an env var
+- Additional non-secret config values are associated with this credential
 - Multiple env var names are common for the same credential type
 
-Examples of ambiguity that require a comment:
+Examples:
 
 ```bash
-# "Global API Key" vs "API Key" vs "API Token" — which CLOUDFLARE_* var?
--j 'env:CLOUDFLARE_API_KEY'
+# Cloudflare: password → CLOUDFLARE_API_KEY, account field → CLOUDFLARE_ACCOUNT_ID, email for CLOUDFLARE_EMAIL
+-j 'env:CLOUDFLARE_API_KEY acct:CLOUDFLARE_ACCOUNT_ID email:user@example.com'
 
 # GitHub tokens can be GITHUB_TOKEN, GH_TOKEN, GHCR_TOKEN depending on use
 -j 'env:GHCR_TOKEN'
@@ -113,9 +131,11 @@ Examples of ambiguity that require a comment:
 -j 'env:TAILSCALE_AUTHKEY'
 ```
 
-**Rules:**
-- If the comment field contains `env:VAR_NAME`, use that as the env var name
-- Otherwise, convert the service name to SCREAMING_SNAKE_CASE
+**Rules for resolving env var names:**
+- `env:VAR_NAME` in the comment → use that for the password
+- `acct:VAR_NAME` in the comment → export the account field as that env var
+- `email:VALUE` in the comment → export that value as `*_EMAIL` (e.g. `CLOUDFLARE_EMAIL`)
+- No comment → convert the service name to SCREAMING_SNAKE_CASE
 - Never guess — if unsure of the conventional env var name, ask the user
 
 ## Example: checking then exporting
@@ -128,15 +148,31 @@ fi
 
 ## Deriving related values from metadata
 
-Some capabilities need values derived from keychain metadata, not just the password. For example, `CLOUDFLARE_EMAIL` can be read from the account field on a Cloudflare entry:
+Some capabilities need non-secret config values alongside the secret. These can be derived from keychain metadata **without triggering an approval prompt**.
+
+Read the comment field first to discover what mappings are available:
 
 ```bash
+# Read the comment to see all hints
+security find-generic-password -s 'Cloudflare Global API Key' | grep '"icmt"' | sed 's/.*="//;s/"//'
+# → env:CLOUDFLARE_API_KEY acct:CLOUDFLARE_ACCOUNT_ID email:user@example.com
+```
+
+Then export the mapped values:
+
+```bash
+# acct: hint → export account field as CLOUDFLARE_ACCOUNT_ID (no approval prompt)
+if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+  export CLOUDFLARE_ACCOUNT_ID="$(security find-generic-password -s 'Cloudflare Global API Key' | grep '"acct"' | sed 's/.*="//;s/"//')"
+fi
+
+# email: hint → export the email value as CLOUDFLARE_EMAIL (no approval prompt)
 if [ -z "$CLOUDFLARE_EMAIL" ]; then
-  export CLOUDFLARE_EMAIL="$(security find-generic-password -s 'Cloudflare Global API Key' | grep '"acct"' | sed 's/.*="//;s/"//')"
+  export CLOUDFLARE_EMAIL="$(security find-generic-password -s 'Cloudflare Global API Key' | grep '"icmt"' | sed 's/.*email://;s/ .*//')"
 fi
 ```
 
-This does **not** trigger an approval prompt since it only reads metadata.
+These reads are safe — they only access metadata, not the secret value.
 
 ## Finding the right keychain item
 
@@ -163,14 +199,13 @@ export CLOUDFLARE_API_KEY="$(security find-generic-password -s 'Cloudflare Globa
 
 ## Known secrets
 
-| Service name | Account | Env var | Override (`-j`) | Used by |
+| Service name | Account | Env var | Comment (`-j`) | Used by |
 |---|---|---|---|---|
-| `Cloudflare Global API Key` | *(user's email)* | `CLOUDFLARE_API_KEY` | `env:CLOUDFLARE_API_KEY` | `infra.setup_mcp_portal` |
-| `Cloudflare Account ID` | *(user's email)* | `CLOUDFLARE_ACCOUNT_ID` | — | `infra.setup_mcp_portal` |
+| `Cloudflare Global API Key` | *(account ID)* | `CLOUDFLARE_API_KEY` | `env:CLOUDFLARE_API_KEY acct:CLOUDFLARE_ACCOUNT_ID email:...` | `infra.setup_mcp_portal` |
 | `OpenAI API Key` | *(project name)* | `OPENAI_API_KEY` | — | `media.analyze_video`, `openai.calculate_usage_cost` |
 | `GitHub Classic Personal Access Token` | *(username)* | `GHCR_TOKEN` | `env:GHCR_TOKEN` | `infra.ghcr_push` |
 
-Note: `infra.setup_mcp_portal` also needs `CLOUDFLARE_EMAIL` — derive it from the account field on the `Cloudflare Global API Key` entry (see "Deriving related values" above).
+Note: `infra.setup_mcp_portal` also needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_EMAIL`. These are not secrets — derive them from the `Cloudflare Global API Key` entry's metadata using the `acct:` and `email:` hints (see "Deriving related values" above).
 
 ## Notes
 
