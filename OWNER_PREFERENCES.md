@@ -94,13 +94,15 @@ All Python repositories follow these conventions unless explicitly overridden:
 
 ## Infrastructure Defaults
 
+For the full ecosystem repository map — which repos exist, what they do, and how they relate — see [Reference Architecture §12](REFERENCE_ARCHITECTURE.md#12-ecosystem-repository-map).
+
 - Docker multi-stage builds with `python:3.11-slim` base for Python services
 - Docker Compose with Cloudflare Tunnel sidecar for deployment
 - GHCR for container images
 - ARM64 (`linux/arm64`) as primary deployment target
-- Oracle Cloud VM as hosting platform
+- Oracle Cloud VM as hosting platform — production stack defined in `mcp-infra` repo
 - Tailscale for SSH connectivity
-- GitHub Actions for CI/CD, with reusable workflows in toolbox
+- GitHub Actions for CI/CD, with reusable workflows in `toolbox` repo
 - No Kubernetes — Docker Compose everywhere
 - No Terraform/IaC — manual VM setup with shell scripts
 
