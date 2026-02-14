@@ -4,7 +4,7 @@ Lightweight guide to scaffold the Python toolbox runtime.
 
 ## Purpose
 
-- Ensure `/core`, `/contracts`, `/adapters`, and `/capabilities` are present.
+- Ensure `core/`, `adapters/`, and `capabilities/` are present.
 - Create `core.dispatch` and contract-based validation.
 
 ## Expected Outputs

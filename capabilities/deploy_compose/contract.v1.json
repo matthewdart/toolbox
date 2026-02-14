@@ -1,0 +1,93 @@
+{
+  "name": "infra.deploy_compose",
+  "description": "Deploy Docker Compose services on a remote host via SSH.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
+      },
+      "compose_dir": {
+        "type": "string",
+        "description": "Absolute path to the Docker Compose project directory on the remote host."
+      },
+      "services": {
+        "type": ["array", "null"],
+        "description": "List of service names to deploy. If null or empty, all services in the compose file are targeted.",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "pull_only": {
+        "type": "boolean",
+        "description": "If true, only pull images without starting services.",
+        "default": false
+      },
+      "dry_run": {
+        "type": "boolean",
+        "description": "If true, return the SSH command that would be executed without running it.",
+        "default": false
+      }
+    },
+    "required": ["host", "compose_dir"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "The SSH host that was targeted."
+      },
+      "compose_dir": {
+        "type": "string",
+        "description": "The remote compose directory."
+      },
+      "services": {
+        "type": "array",
+        "description": "Services that were targeted.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "action": {
+        "type": "string",
+        "description": "The action performed: dry_run, pulled, or deployed."
+      },
+      "exit_code": {
+        "type": "integer",
+        "description": "Exit code from the remote SSH command. Absent for dry_run."
+      },
+      "ssh_command": {
+        "type": "array",
+        "description": "Full SSH command array. Only present for dry_run.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message from the remote host, if any."
+      }
+    },
+    "required": ["host", "compose_dir", "services", "action"]
+  },
+  "errors": [
+    {
+      "code": "dependency_error",
+      "description": "ssh binary not found in PATH."
+    },
+    {
+      "code": "ssh_error",
+      "description": "SSH connection or remote command execution failed."
+    }
+  ],
+  "side_effects": "Pulls Docker images and optionally starts containers on the remote host via SSH.",
+  "version_notes": "v1 migrated from deploy-compose skill script."
+}

@@ -1,4 +1,4 @@
-# AGENTS.md — Toolbox‑Optimised
+# AGENTS.md — Toolbox
 
 This document defines how AI coding agents (including Codex) should operate in this **Toolbox** repository.
 
@@ -40,16 +40,37 @@ If stale, note it to the user. Updates are pulled via:
 
 ## Purpose
 
-This repository contains a **capability‑first toolbox**.
+This repository contains a **capability-first toolbox**.
 
 Agents assist with:
 
-* analysing existing skills and capabilities
-* discovering and extracting reusable capabilities
 * implementing capabilities as self-contained plugins
-* wiring adapters for Codex, OpenAI tools, and MCP
+* wiring adapters for OpenAI tools and MCP
+* maintaining contracts and documentation
 
 The repository explicitly supports **both exploratory and stabilised work**.
+
+---
+
+## Two Concepts
+
+The toolbox has exactly two types of artefact:
+
+### Capabilities
+
+Executable code with JSON Schema contracts, auto-discovered by the registry, exposed via MCP.
+
+* Live in `capabilities/<name>/`
+* Discovered by agents via the MCP server (configured in `.mcp.json`, auto-started by Claude Code)
+* Each has a contract, implementation, and plugin metadata
+
+### Instructional Skills
+
+Guidance-only SKILL.md files with no code behind them.
+
+* Live in `.claude/skills/<name>/SKILL.md`
+* Discovered natively by Claude Code
+* Provide agent context and instructions beyond "call this tool"
 
 ---
 
@@ -62,8 +83,7 @@ Agents MUST operate in one of the following modes. If not explicitly stated, **P
 Used for:
 
 * experiments
-* skill‑to‑capability discovery
-* one‑off or early‑stage tools
+* one-off or early-stage tools
 
 Characteristics:
 
@@ -81,7 +101,7 @@ Breaking changes are allowed.
 Used for:
 
 * shared or reused capabilities
-* multi‑surface tooling relied on by other tools
+* multi-surface tooling relied on by other tools
 * anything claiming stability or reuse
 
 Characteristics:
@@ -100,7 +120,7 @@ Breaking changes REQUIRE acknowledgement.
 The following are authoritative, in descending order:
 
 1. Explicit user instructions
-2. CONTRACT.md and declared authoritative documents
+2. This document (AGENTS.md)
 3. Repository documentation
 4. Capability contracts (`capabilities/*/contract.v1.json`)
 5. Repository code
@@ -112,13 +132,13 @@ If authoritative sources do not exist, agents MAY infer and propose them.
 ## Core Principles (Always Apply)
 
 1. **Capabilities before adapters**
-   Capabilities are surface‑agnostic. Adapters are thin.
+   Capabilities are surface-agnostic. Adapters are thin.
 
 2. **No silent scope expansion**
    New behaviour, assumptions, or side effects must be stated.
 
 3. **Surface assumptions explicitly**
-   Implicit context in skills must become explicit inputs in capabilities.
+   Implicit context must become explicit inputs in capabilities.
 
 4. **Prefer reuse over duplication**
    Temporary duplication is acceptable in Prototype Mode but must be resolved before stabilisation.
@@ -131,7 +151,6 @@ Capabilities may exist in one of the following states:
 
 ### Experimental
 
-* derived directly from skills
 * minimal or informal contracts
 * no stability guarantees
 
@@ -145,9 +164,64 @@ Capabilities may exist in one of the following states:
 
 * versioned contracts
 * backward compatibility guaranteed
-* full stabilised‑mode rules apply
+* full stabilised-mode rules apply
 
 Agents should declare or infer the lifecycle state when modifying a capability.
+
+---
+
+## Capabilities and Plugins
+
+Each capability is a **self-contained plugin** under `capabilities/<name>/` containing:
+
+* `__init__.py` — plugin metadata (CAPABILITY_ID, ENTRY_POINT_MODULE, ENTRY_POINT_ATTR)
+* `contract.v1.json` — canonical interface (JSON Schema draft-07)
+* `implementation.py` — surface-agnostic logic
+* `README.md` — documentation
+* `adapters/` — surface-specific adapter files (optional)
+
+Rules:
+
+* If a capability exists, prefer using it over re-implementation
+* The registry (`core/registry.py`) auto-discovers plugins — no manual wiring needed
+* The MCP server (`adapters/mcp/server.py`) exposes all capabilities as tools
+
+Agents SHOULD propose a new capability when:
+
+* logic is reused
+* behaviour must be deterministic
+* multiple execution surfaces are needed
+
+### Contract Format
+
+Contracts live in `capabilities/<plugin_dir>/contract.v1.json` and MUST include:
+
+* `name`: capability ID (e.g., `text.normalize_markdown`)
+* `description`: short description
+* `version`: version string (e.g., `v1`)
+* `input_schema`: JSON Schema (draft-07) describing inputs
+* `output_schema`: JSON Schema (draft-07) describing outputs
+* `errors`: list of documented error codes and descriptions
+* `side_effects`: optional string
+
+### Naming Convention
+
+```
+<domain>.<verb>_<object>
+```
+
+Examples: `text.normalize_markdown`, `infra.deploy_compose`, `media.analyze_video`
+
+### Contract Validation
+
+* Inputs MUST be validated against `input_schema` before execution.
+* Outputs MUST be validated against `output_schema` after execution.
+* Any breaking behavior change requires a new contract version file.
+
+### Contract Versioning
+
+* `v1 -> v1.1`: backward-compatible additions only.
+* `v1 -> v2`: breaking changes. Old versions remain available if adapters depend on them.
 
 ---
 
@@ -157,9 +231,9 @@ Agents should declare or infer the lifecycle state when modifying a capability.
 
 Agents SHOULD:
 
-* analyse the skill or request
+* analyse the request
 * propose or infer capabilities
-* state assumptions and trade‑offs inline
+* state assumptions and trade-offs inline
 * implement minimal working adapters
 
 Agents MAY:
@@ -179,31 +253,7 @@ Agents MUST:
 * update documentation alongside code
 * respect versioning and compatibility
 
-Plans, ADRs, or issues SHOULD be created when decisions are long‑lived.
-
----
-
-## Research, Convergence, Execution Phases
-
-Agents must distinguish between:
-
-### Research Phase
-
-* explore alternatives
-* surface assumptions
-* avoid premature implementation
-
-### Convergence Phase
-
-* select and justify an approach
-* identify rejected alternatives
-
-### Execution Phase
-
-* apply confirmed decisions
-* minimise exploration
-
-In Prototype Mode, phases may be combined if assumptions are documented.
+Plans, ADRs, or issues SHOULD be created when decisions are long-lived.
 
 ---
 
@@ -222,7 +272,7 @@ All tooling must run in user space.
 
 ---
 
-### User‑Controlled Environments
+### User-Controlled Environments
 
 If execution requires:
 
@@ -231,30 +281,6 @@ If execution requires:
 * system modification
 
 Agents MUST propose commands and effects first and wait for approval.
-
----
-
-## Capabilities and Plugins
-
-Each capability is a **self-contained plugin** under `capabilities/<name>/` containing:
-
-* `contract.v1.json` — canonical interface
-* `implementation.py` — surface-agnostic logic
-* `__init__.py` — plugin metadata (CAPABILITY_ID, ENTRY_POINT_MODULE, ENTRY_POINT_ATTR)
-* `README.md` — documentation
-* `adapters/` — surface-specific adapter files
-
-Rules:
-
-* If a capability exists, prefer using it over re‑implementation
-* Skills under `skills/` are thin CLI wrappers that delegate to capabilities
-* The registry auto-discovers plugins — no manual wiring needed
-
-Agents SHOULD propose a new capability when:
-
-* logic is reused
-* behaviour must be deterministic
-* multiple execution surfaces are needed
 
 ---
 

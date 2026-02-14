@@ -24,7 +24,7 @@ cp .env.example .env
 ## Run (recommended)
 
 ```bash
-.venv/bin/python scripts/analyze_video_openai.py /path/to/video.mp4
+.venv/bin/python -m core.dispatch --capability media.analyze_video --input-json '{"video_path":"/path/to/video.mp4"}'
 ```
 
 ## Download first (optional)

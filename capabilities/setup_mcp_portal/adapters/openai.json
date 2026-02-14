@@ -1,0 +1,64 @@
+{
+  "function": {
+    "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing servers and portals, adding, syncing, and removing servers.",
+    "name": "infra.setup_mcp_portal",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "description": "Cloudflare account ID. Required for all commands.",
+          "type": "string"
+        },
+        "auth_type": {
+          "default": "unauthenticated",
+          "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "The subcommand to execute.",
+          "enum": [
+            "list_servers",
+            "list_portals",
+            "add_server",
+            "sync_server",
+            "remove_server"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Display name for the MCP server. Required for add_server.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_id": {
+          "default": null,
+          "description": "Server ID. Required for sync_server and remove_server. Optional for add_server (defaults to name).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "default": null,
+          "description": "MCP server URL (e.g. https://host/mcp). Required for add_server.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command",
+        "account_id"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

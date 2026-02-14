@@ -1,0 +1,85 @@
+{
+  "name": "infra.setup_mcp_portal",
+  "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing servers and portals, adding, syncing, and removing servers.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "command": {
+        "type": "string",
+        "enum": ["list_servers", "list_portals", "add_server", "sync_server", "remove_server"],
+        "description": "The subcommand to execute."
+      },
+      "account_id": {
+        "type": "string",
+        "description": "Cloudflare account ID. Required for all commands."
+      },
+      "name": {
+        "type": ["string", "null"],
+        "description": "Display name for the MCP server. Required for add_server.",
+        "default": null
+      },
+      "url": {
+        "type": ["string", "null"],
+        "description": "MCP server URL (e.g. https://host/mcp). Required for add_server.",
+        "default": null
+      },
+      "auth_type": {
+        "type": ["string", "null"],
+        "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server.",
+        "default": "unauthenticated"
+      },
+      "server_id": {
+        "type": ["string", "null"],
+        "description": "Server ID. Required for sync_server and remove_server. Optional for add_server (defaults to name).",
+        "default": null
+      }
+    },
+    "required": ["command", "account_id"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "The command that was executed."
+      },
+      "account_id": {
+        "type": "string",
+        "description": "The Cloudflare account ID that was targeted."
+      },
+      "result": {
+        "description": "API response payload. A list for list commands, an object for mutations."
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of items returned (list commands only)."
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message, if any."
+      }
+    },
+    "required": ["command", "account_id", "result"]
+  },
+  "errors": [
+    {
+      "code": "auth_error",
+      "description": "Cloudflare credentials not found in environment variables."
+    },
+    {
+      "code": "validation_error",
+      "description": "Missing or invalid parameters for the requested command."
+    },
+    {
+      "code": "api_error",
+      "description": "Cloudflare API returned an error response."
+    }
+  ],
+  "side_effects": "Registers, syncs, or removes MCP servers in the Cloudflare account via API calls. List commands are read-only.",
+  "version_notes": "v1 migrated from setup-mcp-portal skill script."
+}
