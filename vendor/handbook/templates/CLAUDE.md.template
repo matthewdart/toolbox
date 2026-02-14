@@ -2,15 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Read [AGENTS.md](AGENTS.md) for full agent instructions.
+@AGENTS.md
+
+## Owner Preferences
+
+@vendor/handbook/OWNER_PREFERENCES.md
 
 ## Claude-Specific Notes
 
 <!-- REPO-SPECIFIC: Only items unique to Claude Code that don't belong in AGENTS.md.
      Examples:
-     - AWS Bedrock cross-region inference profile IDs
-     - Tailwind CSS config awareness notes
-     - Claude-specific tool or MCP hints
+     - Runtime environment notes (e.g. Nashorn JS engine, Office.js API surface)
+     - Platform-specific notes (e.g. Windows-first, ARM64 target)
+     - API documentation links for uncommon platforms
 
      If no Claude-specific notes exist, use:
-     No additional notes. See AGENTS.md for all agent instructions. -->
+     No additional notes. -->
