@@ -216,6 +216,8 @@ When a task introduces decisions, assumptions, or requirement impacts:
 - Default to propose-first when execution risk increases
 - Default to transparency and traceability
 - Default to resolving and documenting side effects
+- Default to verifying results after every action — do not assume success
+- Default to active observation of running processes — review output, don't just wait
 
 ---
 

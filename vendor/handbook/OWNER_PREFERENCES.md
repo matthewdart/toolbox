@@ -115,6 +115,60 @@ All Python repositories follow these conventions unless explicitly overridden:
 
 ---
 
+## Execution and Observability
+
+Agents should not passively wait for long-running processes. Active observation is the default:
+
+- When running builds, tests, deploys, or any process that produces output: actively tail logs and review output as it arrives. Do not fire-and-forget.
+- After any command, verify the result. Check exit codes, review output for warnings or errors, confirm expected files were created. Do not assume success.
+- When a process fails, read the full error output before proposing a fix. Do not guess from the error summary.
+- Build observability in by default. Scripts should produce meaningful output. Services should log enough to diagnose problems without attaching a debugger. Silent success is acceptable; silent failure is not.
+- When deploying or modifying running services: verify the service is healthy after changes. Check logs, test endpoints, confirm expected behaviour.
+- Prefer streaming output (`--follow`, `tail -f`, `--progress`) over polling for completion.
+
+---
+
+## Autonomy and Safety Calibration
+
+Not all actions carry equal risk. Agents should calibrate their autonomy accordingly:
+
+### Safe without asking
+- Reading files, searching code, exploring the codebase
+- Running tests, linters, type checks
+- Running builds in development mode
+- Git operations on feature branches (commit, push, rebase)
+- Creating or updating documentation
+- Creating new files that don't overwrite existing ones
+
+### Proceed but announce
+- Modifying existing source code (state what you're changing and why)
+- Running scripts that modify local state (database rebuilds, data processing)
+- Git operations on main/master (commit — but never force push)
+- Installing npm/pip packages declared in existing config
+
+### Ask before proceeding
+- Deleting files or directories
+- Modifying CI/CD workflows, GitHub Actions, deployment configs
+- Any operation that affects a running production service
+- Changes to authoritative docs (CONTRACT.md, SPEC.md, requirements)
+- Introducing new dependencies not already in the project
+- Any operation requiring sudo or elevated privileges
+- Publishing or releasing (Docker push, npm publish, GitHub release)
+
+---
+
+## Preference Evolution
+
+This document should evolve as patterns change. Agents should actively contribute to keeping it current:
+
+- When you notice a consistent pattern across sessions that isn't captured here, propose adding it.
+- When you notice a preference here that consistently doesn't match actual practice, flag it.
+- When the owner explicitly adopts a new tool or convention, propose updating the relevant section.
+- Proposals should be concrete: quote the section, state the observed pattern, suggest the edit.
+- Do not silently deviate from these preferences. If you think a preference is wrong for a specific situation, say so explicitly.
+
+---
+
 ## Explicit Non-Preferences
 
 The following are deliberately not used. Do not introduce them without explicit request:
