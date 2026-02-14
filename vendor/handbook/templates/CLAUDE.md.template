@@ -4,14 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-## Owner Preferences
-
-@vendor/handbook/OWNER_PREFERENCES.md
-
-## Preference Maintenance
-
-When you observe a consistent pattern not captured in OWNER_PREFERENCES.md, or a preference that no longer matches practice, propose a concrete edit. Use the Preference Evolution section in OWNER_PREFERENCES.md for guidance.
-
 ## Claude-Specific Notes
 
 <!-- REPO-SPECIFIC: Only items unique to Claude Code that don't belong in AGENTS.md.
