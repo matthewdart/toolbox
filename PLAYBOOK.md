@@ -208,6 +208,14 @@ Purpose: audit governance documents as a system for inconsistencies, overlap, mi
 
 See [audits/GOVERNANCE_CONSISTENCY_AUDIT.md](audits/GOVERNANCE_CONSISTENCY_AUDIT.md) for the full prompt.
 
+### 5.5 Workspace Hygiene Audit
+
+Purpose: audit the state of all Git repositories across one or more development machines for uncommitted work, remote sync drift, stale branches, orphaned clones, and configuration inconsistencies.
+
+Unlike the other audit prompts, this one is designed for both diagnosis and remediation — safe fixes are applied directly, while risky actions are flagged for human confirmation.
+
+See [audits/WORKSPACE_HYGIENE_AUDIT.md](audits/WORKSPACE_HYGIENE_AUDIT.md) for the full prompt.
+
 ---
 
 ## 6. Playbook Exploitation Model (How Agents Use This)
@@ -261,9 +269,10 @@ AGENTS.md is the per-repo operationalisation of this handbook. Each repository m
 | File | Audience | Purpose |
 |---|---|---|
 | `AGENTS.md` | All AI agents | Agent behaviour rules and repo-specific constraints |
-| `CLAUDE.md` | Claude Code | Thin wrapper — references AGENTS.md, adds Claude-only notes |
+| `CLAUDE.md` | Claude Code | Imports AGENTS.md + preferences via `@` syntax, adds Claude-only notes |
 | `CONTRIBUTING.md` | Human contributors | Bug reports, PRs, dev setup, testing |
 | `.claude/agents/*.md` | Claude sub-agents | Specialised agent personas (e.g. code reviewer) |
+| `vendor/handbook/OWNER_PREFERENCES.md` | All agents (via import) | Cross-repo conventions, patterns, and tool choices |
 
 ### Workflow tiers
 
