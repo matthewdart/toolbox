@@ -97,8 +97,8 @@ All Python repositories follow these conventions unless explicitly overridden:
 For the full ecosystem repository map — which repos exist, what they do, and how they relate — see [Reference Architecture §12](REFERENCE_ARCHITECTURE.md#12-ecosystem-repository-map).
 
 - Docker multi-stage builds with `python:3.11-slim` base for Python services
-- Each repo defines its own Dockerfile and deploys as a standalone container
-- Cloudflared runs on the VM host, routing to services via localhost ports
+- Each repo defines its own Dockerfile, docker-compose.yml, and Cloudflare Tunnel sidecar
+- Each service's docker-compose includes a per-service cloudflared container with its own tunnel token
 - GHCR for container images
 - ARM64 (`linux/arm64`) as primary deployment target
 - Oracle Cloud VM as hosting platform

@@ -644,10 +644,11 @@ The ecosystem is composed of repositories that fall into three categories: **gov
 
 Each service repo is self-contained for production deployment:
 
-- Each repo defines its own Dockerfile and container configuration
-- Containers run independently on the Oracle Cloud ARM VM
-- Cloudflared runs on the VM host (not as a container), routing to services via `localhost:<port>`
-- Inter-service communication, when needed, uses Tailscale — no shared Docker network required
+- Each repo defines its own `Dockerfile`, `docker-compose.yml`, and cloudflared sidecar container
+- Each service's compose file includes a per-service `cloudflare/cloudflared` container with its own tunnel token (`CF_TUNNEL_TOKEN`)
+- The toolbox `deploy-stack.yml` workflow SCPs the repo's docker-compose.yml to `/opt/<service>/` on the VM and runs `docker compose up -d`
+- Services are fully independent — no shared Docker networks between services
+- Inter-service communication, when needed, uses Tailscale
 
 ### 12.5 Relationships
 
