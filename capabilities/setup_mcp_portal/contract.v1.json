@@ -1,6 +1,6 @@
 {
   "name": "infra.setup_mcp_portal",
-  "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing servers and portals, adding, syncing, and removing servers.",
+  "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing, adding, updating, syncing, and removing servers, managing portal-to-server assignments, and verifying end-to-end portal health.",
   "version": "v1",
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -9,12 +9,23 @@
     "properties": {
       "command": {
         "type": "string",
-        "enum": ["list_servers", "list_portals", "add_server", "sync_server", "remove_server"],
+        "enum": [
+          "list_servers",
+          "list_portals",
+          "get_portal",
+          "add_server",
+          "update_server",
+          "sync_server",
+          "remove_server",
+          "update_portal_servers",
+          "verify_portal"
+        ],
         "description": "The subcommand to execute."
       },
       "account_id": {
-        "type": "string",
-        "description": "Cloudflare account ID. Required for all commands."
+        "type": ["string", "null"],
+        "description": "Cloudflare account ID. Defaults to CLOUDFLARE_ACCOUNT_ID env var if not provided.",
+        "default": null
       },
       "name": {
         "type": ["string", "null"],
@@ -23,21 +34,32 @@
       },
       "url": {
         "type": ["string", "null"],
-        "description": "MCP server URL (e.g. https://host/mcp). Required for add_server.",
+        "description": "MCP server URL (e.g. https://host/mcp). Required for add_server, optional for update_server.",
         "default": null
       },
       "auth_type": {
         "type": ["string", "null"],
-        "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server.",
+        "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server and update_server.",
         "default": "unauthenticated"
       },
       "server_id": {
         "type": ["string", "null"],
-        "description": "Server ID. Required for sync_server and remove_server. Optional for add_server (defaults to name).",
+        "description": "Server ID. Required for sync_server, remove_server, and update_server. Optional for add_server (defaults to name).",
+        "default": null
+      },
+      "portal_id": {
+        "type": ["string", "null"],
+        "description": "Portal ID. Required for get_portal, update_portal_servers, and verify_portal.",
+        "default": null
+      },
+      "server_ids": {
+        "type": ["array", "null"],
+        "items": { "type": "string" },
+        "description": "List of server IDs to assign to the portal. Required for update_portal_servers. Replaces the full server list.",
         "default": null
       }
     },
-    "required": ["command", "account_id"]
+    "required": ["command"]
   },
   "output_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -80,6 +102,6 @@
       "description": "Cloudflare API returned an error response."
     }
   ],
-  "side_effects": "Registers, syncs, or removes MCP servers in the Cloudflare account via API calls. List commands are read-only.",
-  "version_notes": "v1 migrated from setup-mcp-portal skill script."
+  "side_effects": "Registers, updates, syncs, or removes MCP servers and portal assignments in the Cloudflare account via API calls. List and get commands are read-only.",
+  "version_notes": "v1.1 added get_portal, update_portal_servers, update_server commands; account_id defaults from CLOUDFLARE_ACCOUNT_ID env var. v1.2 added verify_portal command for end-to-end health checks."
 }

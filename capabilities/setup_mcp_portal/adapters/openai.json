@@ -1,17 +1,21 @@
 {
   "function": {
-    "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing servers and portals, adding, syncing, and removing servers.",
+    "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing, adding, updating, syncing, and removing servers, managing portal-to-server assignments, and verifying end-to-end portal health.",
     "name": "infra.setup_mcp_portal",
     "parameters": {
       "additionalProperties": false,
       "properties": {
         "account_id": {
-          "description": "Cloudflare account ID. Required for all commands.",
-          "type": "string"
+          "default": null,
+          "description": "Cloudflare account ID. Defaults to CLOUDFLARE_ACCOUNT_ID env var if not provided.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "auth_type": {
           "default": "unauthenticated",
-          "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server.",
+          "description": "Auth type for the MCP server (default: unauthenticated). Used by add_server and update_server.",
           "type": [
             "string",
             "null"
@@ -22,9 +26,13 @@
           "enum": [
             "list_servers",
             "list_portals",
+            "get_portal",
             "add_server",
+            "update_server",
             "sync_server",
-            "remove_server"
+            "remove_server",
+            "update_portal_servers",
+            "verify_portal"
           ],
           "type": "string"
         },
@@ -36,17 +44,36 @@
             "null"
           ]
         },
-        "server_id": {
+        "portal_id": {
           "default": null,
-          "description": "Server ID. Required for sync_server and remove_server. Optional for add_server (defaults to name).",
+          "description": "Portal ID. Required for get_portal, update_portal_servers, and verify_portal.",
           "type": [
             "string",
             "null"
           ]
         },
+        "server_id": {
+          "default": null,
+          "description": "Server ID. Required for sync_server, remove_server, and update_server. Optional for add_server (defaults to name).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_ids": {
+          "default": null,
+          "description": "List of server IDs to assign to the portal. Required for update_portal_servers. Replaces the full server list.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "url": {
           "default": null,
-          "description": "MCP server URL (e.g. https://host/mcp). Required for add_server.",
+          "description": "MCP server URL (e.g. https://host/mcp). Required for add_server, optional for update_server.",
           "type": [
             "string",
             "null"
@@ -54,8 +81,7 @@
         }
       },
       "required": [
-        "command",
-        "account_id"
+        "command"
       ],
       "type": "object"
     }
