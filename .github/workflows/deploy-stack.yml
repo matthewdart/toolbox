@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: docker-compose.yml
+      compose_override_template:
+        description: "Path to docker-compose.override template (envsubst placeholders for secrets)"
+        required: false
+        type: string
+        default: docker-compose.override.deploy.yml
       vm_hostname:
         description: "Tailscale hostname or IP of the target VM"
         required: false
@@ -22,10 +27,6 @@ on:
         required: false
         type: string
         default: ubuntu
-    secrets:
-      TAILSCALE_AUTHKEY:
-        description: "Tailscale auth key (ephemeral, reusable)"
-        required: true
 
 jobs:
   deploy:
@@ -33,6 +34,21 @@ jobs:
     steps:
       - name: Checkout calling repo
         uses: actions/checkout@v4
+
+      - name: Generate docker-compose.override.yml from template
+        env:
+          CF_TUNNEL_TOKEN: ${{ secrets.CF_TUNNEL_TOKEN }}
+          HTTP_BEARER_TOKEN: ${{ secrets.HTTP_BEARER_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RM_CONNECT_TOKEN: ${{ secrets.RM_CONNECT_TOKEN }}
+        run: |
+          TEMPLATE="${{ inputs.compose_override_template }}"
+          if [ -f "$TEMPLATE" ]; then
+            envsubst < "$TEMPLATE" > docker-compose.override.generated.yml
+            echo "✓ override generated from $TEMPLATE"
+          else
+            echo "No $TEMPLATE found — skipping override generation"
+          fi
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
@@ -57,6 +73,20 @@ jobs:
               -o BatchMode=yes \
               "${{ inputs.compose_file }}" \
               "$HOST:$DIR/docker-compose.yml"
+
+      - name: Sync docker-compose.override.yml to VM
+        run: |
+          if [ -f docker-compose.override.generated.yml ]; then
+            HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+            DIR="/opt/${{ inputs.service_name }}"
+            scp -o StrictHostKeyChecking=no \
+                -o BatchMode=yes \
+                docker-compose.override.generated.yml \
+                "$HOST:$DIR/docker-compose.override.yml"
+            echo "✓ docker-compose.override.yml synced"
+          else
+            echo "No override generated — skipping"
+          fi
 
       - name: Pull and deploy
         run: |
