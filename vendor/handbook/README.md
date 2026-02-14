@@ -47,6 +47,9 @@ This repository defines a four-layer governance system, ordered by force level:
 ### Preferences
 - [Owner Preferences](OWNER_PREFERENCES.md) — cross-repo conventions, patterns, and tool choices
 
+### Infrastructure
+- [Infrastructure Map](INFRASTRUCTURE_MAP.md) — end-to-end architecture map of all deployed components, data flows, and interactions
+
 ### Other
 - [Superseded artifacts](superseded/)
 - [Version](VERSION)
