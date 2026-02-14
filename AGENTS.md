@@ -276,6 +276,8 @@ Chat history is never authoritative.
 * default to minimal viable capability
 * default to explicit assumptions
 * default to later hardening, not upfront bureaucracy
+* default to verifying results after every action — do not assume success
+* default to active observation of running processes — review output, don't just wait
 
 ---
 
