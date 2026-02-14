@@ -18,9 +18,10 @@ This repository conforms to the [handbook governance hierarchy](vendor/handbook/
 
 - [Manifesto](vendor/handbook/MANIFESTO.md) — values and selection pressures
 - [Tech Constitution](vendor/handbook/TECH_CONSTITUTION.md) — validity invariants
-- [Reference Architecture](vendor/handbook/REFERENCE_ARCHITECTURE.md) — ecosystem defaults
+- [Reference Architecture](vendor/handbook/REFERENCE_ARCHITECTURE.md) — ecosystem defaults and deployment model
 - [Playbook](vendor/handbook/PLAYBOOK.md) — audits and agent exploitation model
 - [Owner Preferences](vendor/handbook/OWNER_PREFERENCES.md) — cross-repo conventions, patterns, and tool choices
+- [Infrastructure Map](vendor/handbook/INFRASTRUCTURE_MAP.md) — E2E architecture of all deployed components, Cloudflare tunnels, Docker containers, data flows, and VM state
 
 This repo uses **Tier 1 + mode system** workflow (Prototype default, Stabilised for mature capabilities).
 
