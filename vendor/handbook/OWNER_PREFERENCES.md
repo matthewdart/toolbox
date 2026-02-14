@@ -97,13 +97,15 @@ All Python repositories follow these conventions unless explicitly overridden:
 For the full ecosystem repository map — which repos exist, what they do, and how they relate — see [Reference Architecture §12](REFERENCE_ARCHITECTURE.md#12-ecosystem-repository-map).
 
 - Docker multi-stage builds with `python:3.11-slim` base for Python services
-- Docker Compose with Cloudflare Tunnel sidecar for deployment
+- Each repo defines its own Dockerfile and deploys as a standalone container
+- Cloudflared runs on the VM host, routing to services via localhost ports
 - GHCR for container images
 - ARM64 (`linux/arm64`) as primary deployment target
-- Oracle Cloud VM as hosting platform — production stack defined in `mcp-infra` repo
-- Tailscale for SSH connectivity
+- Oracle Cloud VM as hosting platform
+- Tailscale for SSH connectivity and inter-service communication
 - GitHub Actions for CI/CD, with reusable workflows in `toolbox` repo
-- No Kubernetes — Docker Compose everywhere
+- No Kubernetes — standalone containers everywhere
+- No shared Docker networks or multi-service compose orchestration
 - No Terraform/IaC — manual VM setup with shell scripts
 
 ---

@@ -624,9 +624,6 @@ The ecosystem is composed of repositories that fall into three categories: **gov
 | Repository | Purpose | Consumed by |
 |---|---|---|
 | **toolbox** | Reusable skills (executable scripts) and GitHub Actions workflows (`build-arm-image.yml`, `deploy-stack.yml`). Skills are callable from CLI, CI, or agents. | All repos that build ARM images or deploy to the VM reference toolbox workflows. Skills are installed on development machines and the VM. |
-| **mcp-infra** | Docker Compose stack on Oracle Cloud ARM VM. Defines how all MCP services are orchestrated in production — Cloudflare Tunnel ingress, `mcp-internal` Docker network, per-service configuration. | All MCP server repos (remarkable-pipeline, health-ledger-mcp, archi-mcp-bridge, pptx-mcp-bridge) run here as containers. |
-
-> **Planned rename:** `mcp-infra` → `infrastructure`. The repo already manages general deployment infrastructure (Cloudflare Tunnel, Tailscale sidecar, Docker Compose orchestration), not just MCP services.
 
 ### 12.3 Project Repositories
 
@@ -643,7 +640,16 @@ The ecosystem is composed of repositories that fall into three categories: **gov
 | **archi-scripts** | Utility scripts for Archi modelling tool | Tier 1 |
 | **pipeline-template** | Template repo for new pipeline-style projects | Tier 2 |
 
-### 12.4 Relationships
+### 12.4 Deployment Model
+
+Each service repo is self-contained for production deployment:
+
+- Each repo defines its own Dockerfile and container configuration
+- Containers run independently on the Oracle Cloud ARM VM
+- Cloudflared runs on the VM host (not as a container), routing to services via `localhost:<port>`
+- Inter-service communication, when needed, uses Tailscale — no shared Docker network required
+
+### 12.5 Relationships
 
 ```
 handbook (governance)
@@ -653,13 +659,10 @@ toolbox (infrastructure)
   ├── .github/workflows/  → referenced by project repo CI/CD
   └── skills/             → installed on dev machines and VM
 
-mcp-infra (infrastructure)
-  └── docker-compose.yml  → orchestrates project repo containers in production
-
 project repos
   ├── consume handbook (vendored)
   ├── consume toolbox workflows (CI reference)
-  └── run inside mcp-infra (production containers)
+  └── deploy independently to the VM as standalone containers
 ```
 
 ---
