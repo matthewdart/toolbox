@@ -27,6 +27,16 @@ on:
         required: false
         type: string
         default: ubuntu
+      health_port:
+        description: "Port to poll /health on after deploy (0 = skip health check)"
+        required: false
+        type: number
+        default: 0
+      health_timeout:
+        description: "Max seconds to wait for /health to return ok or degraded"
+        required: false
+        type: number
+        default: 120
 
 jobs:
   deploy:
@@ -107,3 +117,37 @@ jobs:
               -o BatchMode=yes \
               "$HOST" \
               "cd $DIR && docker compose ps"
+
+      - name: Poll health endpoint
+        if: inputs.health_port != 0
+        run: |
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          PORT="${{ inputs.health_port }}"
+          TIMEOUT="${{ inputs.health_timeout }}"
+          INTERVAL=5
+          ELAPSED=0
+
+          echo "Polling http://localhost:${PORT}/health (timeout ${TIMEOUT}s) ..."
+          while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+            RESPONSE=$(ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5 "$HOST" \
+              "curl -fsS http://localhost:${PORT}/health 2>/dev/null" || true)
+
+            STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
+
+            if [ "$STATUS" = "ok" ] || [ "$STATUS" = "degraded" ]; then
+              echo "✓ Health check passed: status=${STATUS} (after ${ELAPSED}s)"
+              echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+              exit 0
+            fi
+
+            echo "  ... waiting (${ELAPSED}s/${TIMEOUT}s, status=${STATUS:-no response})"
+            sleep "$INTERVAL"
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "✗ Health check timed out after ${TIMEOUT}s"
+          echo "=== Container logs (last 50 lines) ==="
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes "$HOST" \
+            "cd $DIR && docker compose logs --tail=50" || true
+          exit 1

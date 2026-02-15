@@ -82,7 +82,7 @@ All public hostnames live under `matthewdart.name` (Cloudflare-managed zone). Ea
 | `remarkable-pipeline-mcp.matthewdart.name` | remarkable-pipeline-mcp (port 8766) | Active |
 | `remarkable-mcp.matthewdart.name` | remarkable-pipeline-mcp (port 8766) | Active (alias) |
 | `health-ledger.matthewdart.name` | health-ledger MCP (port 8765) | Active |
-| `archi-mcp-bridge.matthewdart.name` | archi-mcp-bridge (port 3177) | Active |
+| `archi-mcp-bridge.matthewdart.name` | archi-mcp-bridge (port 8767) | Active |
 | `pptx-mcp-bridge.matthewdart.name` | pptx-mcp-bridge (port 8769) | Not deployed |
 
 DNS records are CNAME entries pointing to Cloudflare Tunnel UUIDs. No A records — the VM has no public IP exposure.
@@ -185,7 +185,7 @@ Four system services run directly on the VM host (not in containers):
 | 20241-20244 | cloudflared | 127.0.0.1 (metrics/internal) |
 | 44179 | tailscaled | 0.0.0.0 (Tailscale coordination) |
 
-Note: Container ports (8766, 8765, 8787, 3177) are either host-networked (remarkable-pipeline) or bridge-networked (health-ledger, archi-mcp-bridge) and only exposed to localhost or their respective cloudflared sidecars.
+Note: Container ports (8766, 8765, 8787, 8767) use host networking. All services bind to localhost or 0.0.0.0 as configured in docker-compose.yml.
 
 ---
 
@@ -274,9 +274,9 @@ Note: Container ports (8766, 8765, 8787, 3177) are either host-networked (remark
 - ArchiMate `.archimate` model files
 - Total: ~672 KB
 
-**Port**: 3177 (HTTP) — `127.0.0.1:3177:3177`
+**Port**: 8767 (HTTP) — bound to host network
 
-**Cloudflare route**: `archi-mcp.matthewdart.name` → port 3177
+**Cloudflare route**: `archi-mcp-bridge.matthewdart.name` → port 8767
 
 **Special build note**: The Dockerfile is complex multi-stage — runs an ARM64 JVM (Eclipse Temurin 21) with x86_64 multiarch support via QEMU/binfmt for the Archi binary (which is only distributed as x86_64).
 
@@ -307,11 +307,10 @@ No directory at `/opt/pptx-mcp-bridge/`. A Cloudflare tunnel exists (`pptx-mcp-b
 │   └── localhost:8787 → REST API                             │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│  BRIDGE: archi-mcp-bridge_default                           │
+│  HOST NETWORK: archi-mcp-bridge                             │
 │                                                             │
-│   archi-mcp-bridge (:3177)                                  │
-│   archi-mcp-bridge-tunnel (shares archi-mcp-bridge ns)      │
-│   └── localhost:3177 → HTTP                                 │
+│   archi-mcp-bridge (:8767)                                  │
+│   archi-mcp-bridge-tunnel (host network)                    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 
@@ -528,7 +527,7 @@ All data uses bind mounts (not Docker named volumes) for inspectability and dire
 | 6 | remarkable-pipeline-tunnel | Docker container | VM (host net) | — | Cloudflare tunnel for remarkable-pipeline |
 | 7 | health-ledger | Docker container | VM (bridge) | TCP 8765, 8787 | Health data MCP + REST server |
 | 8 | health-ledger-tunnel | Docker container | VM (shared ns) | — | Cloudflare tunnel for health-ledger |
-| 9 | archi-mcp-bridge | Docker container | VM (bridge) | TCP 3177 | ArchiMate MCP bridge |
+| 9 | archi-mcp-bridge | Docker container | VM (host net) | TCP 8767 | ArchiMate MCP bridge |
 | 10 | archi-mcp-bridge-tunnel | Docker container | VM (shared ns) | — | Cloudflare tunnel for archi-mcp-bridge |
 | 11 | Cloudflare Edge | SaaS | Cloudflare | HTTPS 443 | DNS, TLS, Zero Trust, tunnels, MCP Portal |
 | 12 | GitHub Actions | SaaS | GitHub | — | CI/CD pipeline |
