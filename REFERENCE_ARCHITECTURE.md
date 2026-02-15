@@ -600,6 +600,7 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 
 **Default**
 
+* All containers use `network_mode: host`.
 * Containerised services follow the same trust model as non-containerised services.
 
 **Expected Fit**
@@ -607,15 +608,19 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 * Private communication over mesh networking
 * No direct public exposure by default
 * Public ingress only via managed edge tunnels
+* Services bind to `127.0.0.1:<port>` — reachable locally and via cloudflared, not from outside the host
 
 **Preferred Realisation**
 
 * Tailscale for mesh connectivity
 * Cloudflare Tunnels for public exposure
+* Host networking for all containers (app and sidecar)
 
 **Rationale**
 
 * Maintains a single, consistent threat model
+* Simplifies Docker configuration — no port mapping, no bridge networks, no shared namespace plumbing
+* Every service is immediately reachable at `localhost:<port>` for debugging and local MCP access
 
 ---
 
@@ -626,19 +631,38 @@ The following are validity invariants from the [Tech Constitution](TECH_CONSTITU
 * Containerised services SHOULD be exposed via Cloudflare Tunnels.
 * Each service deploys its own `cloudflared` sidecar container alongside the application container.
 * One tunnel per service, configured via `TUNNEL_TOKEN` from the Cloudflare dashboard.
+* Both the app and `cloudflared` containers use `network_mode: host`.
 
 **Rationale**
 
 * Independent lifecycle — services deploy, update, and fail independently
-* No shared network namespace required between unrelated services
+* Host networking means cloudflared reaches the app at `localhost:<port>` naturally — no shared namespace or Docker DNS required
 * Tunnel configuration (hostname routing) lives in the Cloudflare dashboard, not in local config files
 
-**Networking Strategies**
+**Canonical docker-compose.yml**
 
-Two strategies exist based on service requirements:
+```yaml
+services:
+  <app>:
+    image: ghcr.io/matthewdart/<service>:latest
+    container_name: <service>
+    network_mode: host
+    restart: unless-stopped
+    env_file: [.env]
+    volumes:
+      - ./data:/data
 
-* **Shared namespace** (`network_mode: "service:<app>"`) — `cloudflared` joins the app container's network namespace. App can bind to `localhost`. Used when the service only needs to serve HTTP.
-* **Host networking** (`network_mode: host`) — both app and `cloudflared` use host networking. Required when the app needs access to host-level resources (e.g. Tailscale for SSH to devices).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: <service>-tunnel
+    network_mode: host
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    depends_on:
+      - <app>
+```
 
 **Expected Fit**
 
@@ -683,6 +707,78 @@ Two strategies exist based on service requirements:
 
 * Direct per-service URLs are acceptable for development and debugging only
 * Production client access SHOULD go through the portal
+
+---
+
+### 11.8 MCP Service Conventions
+
+**Default**
+
+* MCP services expose Streamable HTTP transport at the path `/mcp`.
+* REST/HTTP endpoints use `/v1/*` or similar prefixed paths alongside MCP.
+* Every service exposes `GET /health` returning `{"status":"ok",...}` without authentication.
+* Every Dockerfile includes a `HEALTHCHECK` instruction targeting the `/health` endpoint.
+
+**Port Registry**
+
+Ports are unique across all services. The 87xx range is reserved for MCP services.
+
+| Port | Service | Transport |
+|------|---------|-----------|
+| 8765 | health-ledger | MCP (streamable-http) |
+| 8766 | remarkable-pipeline | MCP (streamable-http) |
+| 8767 | archi-mcp-bridge | MCP + HTTP |
+| 8768 | pptx-mcp-bridge | MCP |
+
+Next available: **8769**
+
+**Standard Environment Variables**
+
+All Dockerised MCP services use these common env vars:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `HTTP_PORT` | Listening port | Per port registry |
+| `HTTP_HOST` | Bind address | `127.0.0.1` |
+| `HTTP_BEARER_TOKEN` | Bearer token value for API authentication | — |
+| `HTTP_BEARER_TOKEN_REQUIRED` | Whether bearer auth is enforced (`true`/`false`) | `false` |
+| `CF_TUNNEL_TOKEN` | Cloudflare Tunnel token | — |
+
+Service-specific variables retain a service prefix (e.g. `ARCHI_MCP_FIXTURE_MODEL`, `RM_CONNECT_TOKEN`).
+
+**Standard .env.example template**
+
+```bash
+# ── HTTP server ──────────────────────────────────────────────
+HTTP_PORT=<port from registry>
+HTTP_HOST=127.0.0.1
+
+# ── Authentication ───────────────────────────────────────────
+HTTP_BEARER_TOKEN=
+HTTP_BEARER_TOKEN_REQUIRED=false
+
+# ── Cloudflare tunnel ────────────────────────────────────────
+CF_TUNNEL_TOKEN=
+```
+
+**Healthcheck Convention**
+
+```dockerfile
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+  CMD curl -fsS http://localhost:${HTTP_PORT}/health || exit 1
+```
+
+**Rationale**
+
+* `/mcp` path leaves room for REST endpoints on the same port
+* Standard env vars eliminate per-service naming conventions
+* Health endpoints enable Docker healthchecks, Cloudflare origin monitoring, and local debugging
+* Port registry prevents host-network collisions
+
+**Deviation Guidance**
+
+* Additional service-specific env vars are expected — use a service prefix
+* Services that only support `stdio` transport are exempt from HTTP conventions
 
 ---
 
