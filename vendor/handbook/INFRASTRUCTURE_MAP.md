@@ -425,7 +425,7 @@ Calling repos use `secrets: inherit` to pass all repository secrets to the reusa
 
 | Secret | Repos | Used by | Purpose |
 |---|---|---|---|
-| `TAILSCALE_AUTHKEY` | all 3 | deploy-stack.yml | Ephemeral Tailscale key for CI runner to SSH to VM |
+| `TS_AUTHKEY` | all 3 | deploy-stack.yml + override | Tailscale auth key — CI runner (ephemeral) and Tailscale sidecar containers |
 | `CF_TUNNEL_TOKEN` | all 3 | deploy-stack.yml → override | Per-service Cloudflare Tunnel token |
 | `HTTP_BEARER_TOKEN` | all 3 | deploy-stack.yml → override | Per-service API bearer token |
 | `OPENAI_API_KEY` | remarkable-pipeline | deploy-stack.yml → override | OpenAI API key (OCR prompts) |
@@ -537,7 +537,7 @@ All data uses bind mounts (not Docker named volumes) for inspectability and dire
 | `/opt/<service>/.env` | Optional operator overrides only. NOT deployed by CI/CD. Only used if an operator creates one manually. |
 | `<repo>/docker-compose.override.deploy.yml` | Committed template with `${PLACEHOLDER}` syntax. CI/CD expands secrets and deploys as `docker-compose.override.yml`. |
 | Cloudflare Dashboard | Tunnel routing rules, DNS records, Zero Trust policies, MCP Portal config |
-| GitHub Secrets | `TAILSCALE_AUTHKEY`, `CF_TUNNEL_TOKEN`, `HTTP_BEARER_TOKEN`, `OPENAI_API_KEY`, `RM_CONNECT_TOKEN` (per-repo) |
+| GitHub Secrets | `TS_AUTHKEY`, `CF_TUNNEL_TOKEN`, `HTTP_BEARER_TOKEN`, `OPENAI_API_KEY`, `RM_CONNECT_TOKEN` (per-repo) |
 
 ---
 
