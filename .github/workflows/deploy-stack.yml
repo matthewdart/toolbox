@@ -132,7 +132,7 @@ jobs:
           echo "Polling http://localhost:${PORT}/health (timeout ${TIMEOUT}s) ..."
           while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
             RESPONSE=$(ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5 "$HOST" \
-              "curl -fsS http://localhost:${PORT}/health 2>/dev/null" || true)
+              "curl -sS http://localhost:${PORT}/health 2>/dev/null" || true)
 
             STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
 
