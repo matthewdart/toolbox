@@ -142,8 +142,8 @@ Examples:
 # GitHub tokens can be GITHUB_TOKEN, GH_TOKEN, GHCR_TOKEN depending on use
 -j 'env:GHCR_TOKEN'
 
-# Tailscale uses TAILSCALE_AUTHKEY (no underscore) not TAILSCALE_AUTH_KEY
--j 'env:TAILSCALE_AUTHKEY'
+# Tailscale uses TS_AUTHKEY (matching the Tailscale Docker image convention)
+-j 'env:TS_AUTHKEY'
 ```
 
 **Rules for resolving env var names:**

@@ -91,8 +91,7 @@ jobs:
     uses: matthewdart/toolbox/.github/workflows/deploy-stack.yml@main
     with:
       service_name: my-service
-    secrets:
-      TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+    secrets: inherit
 ```
 
 ---

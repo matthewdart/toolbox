@@ -51,6 +51,7 @@ jobs:
           HTTP_BEARER_TOKEN: ${{ secrets.HTTP_BEARER_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           RM_CONNECT_TOKEN: ${{ secrets.RM_CONNECT_TOKEN }}
+          TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
         run: |
           TEMPLATE="${{ inputs.compose_override_template }}"
           if [ -f "$TEMPLATE" ]; then
@@ -63,7 +64,7 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: Ensure deploy directory exists
         run: |
