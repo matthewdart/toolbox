@@ -136,12 +136,17 @@ If authoritative sources do not exist, agents MAY infer and propose them.
 
 2. **No silent scope expansion**
    New behaviour, assumptions, or side effects must be stated.
+   When the original task is complete, STOP and ask before expanding scope.
 
 3. **Surface assumptions explicitly**
    Implicit context must become explicit inputs in capabilities.
 
 4. **Prefer reuse over duplication**
    Temporary duplication is acceptable in Prototype Mode but must be resolved before stabilisation.
+
+5. **Verify before acting, verify after acting**
+   Check current state before making changes. Confirm desired state after.
+   Build success ≠ deployment success ≠ runtime success.
 
 ---
 
@@ -306,6 +311,10 @@ Chat history is never authoritative.
 * default to later hardening, not upfront bureaucracy
 * default to verifying results after every action — do not assume success
 * default to active observation of running processes — review output, don't just wait
+
+---
+
+@vendor/handbook/AGENTS.md
 
 ---
 
