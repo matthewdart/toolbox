@@ -75,11 +75,11 @@ All public hostnames live under `matthewdart.name` (Cloudflare-managed zone). Ea
 
 | Hostname | Routes to | Status |
 |---|---|---|
-| `remarkable-mcp.matthewdart.name` | remarkable-pipeline-mcp (port 8766) | Active |
-| `health-ledger-mcp.matthewdart.name` | health-ledger MCP (port 8765) | Active |
-| `health-ledger-api.matthewdart.name` | health-ledger REST API (port 8787) | Active |
-| `archi-mcp.matthewdart.name` | archi-mcp-bridge (port 3177) | Active |
-| `pptx-mcp.matthewdart.name` | pptx-mcp-bridge (port 8769) | Not deployed |
+| `remarkable-pipeline-mcp.matthewdart.name` | remarkable-pipeline-mcp (port 8766) | Active |
+| `remarkable-mcp.matthewdart.name` | remarkable-pipeline-mcp (port 8766) | Active (alias) |
+| `health-ledger.matthewdart.name` | health-ledger MCP (port 8765) | Active |
+| `archi-mcp-bridge.matthewdart.name` | archi-mcp-bridge (port 8767) | Active |
+| `pptx-mcp-bridge.matthewdart.name` | pptx-mcp-bridge (port 8769) | Not deployed |
 
 DNS records are CNAME entries pointing to Cloudflare Tunnel UUIDs. No A records — the VM has no public IP exposure.
 
@@ -104,8 +104,12 @@ The Cloudflare MCP Portal aggregates all MCP servers behind a single endpoint UR
 
 - **Portal URL**: Single endpoint that Claude Code (and other MCP clients) connects to
 - **Per-service registration**: Each MCP server is registered in the portal with access policies
+- **Portal assignment**: Servers must be **explicitly assigned** to a portal after registration — adding a server does not auto-assign it to any portal
+- **Access Applications**: Each registered MCP server gets an auto-created Access Application (`type: mcp`) with access policies
 - **Access control**: Zero Trust policies (identity, device posture) applied at the portal layer
 - Clients never connect directly to per-service tunnel URLs in production
+
+See [toolbox docs/mcp-portal-pattern.md](https://github.com/matthewdart/toolbox/blob/main/docs/mcp-portal-pattern.md) for the full 5-layer setup checklist and common failure modes.
 
 ### 2.4 Host-Level Cloudflared (systemd)
 
@@ -421,7 +425,7 @@ Calling repos use `secrets: inherit` to pass all repository secrets to the reusa
 
 | Secret | Repos | Used by | Purpose |
 |---|---|---|---|
-| `TAILSCALE_AUTHKEY` | all 3 | deploy-stack.yml | Ephemeral Tailscale key for CI runner to SSH to VM |
+| `TS_AUTHKEY` | all 3 | deploy-stack.yml + override | Tailscale auth key — CI runner (ephemeral) and Tailscale sidecar containers |
 | `CF_TUNNEL_TOKEN` | all 3 | deploy-stack.yml → override | Per-service Cloudflare Tunnel token |
 | `HTTP_BEARER_TOKEN` | all 3 | deploy-stack.yml → override | Per-service API bearer token |
 | `OPENAI_API_KEY` | remarkable-pipeline | deploy-stack.yml → override | OpenAI API key (OCR prompts) |
@@ -533,7 +537,7 @@ All data uses bind mounts (not Docker named volumes) for inspectability and dire
 | `/opt/<service>/.env` | Optional operator overrides only. NOT deployed by CI/CD. Only used if an operator creates one manually. |
 | `<repo>/docker-compose.override.deploy.yml` | Committed template with `${PLACEHOLDER}` syntax. CI/CD expands secrets and deploys as `docker-compose.override.yml`. |
 | Cloudflare Dashboard | Tunnel routing rules, DNS records, Zero Trust policies, MCP Portal config |
-| GitHub Secrets | `TAILSCALE_AUTHKEY`, `CF_TUNNEL_TOKEN`, `HTTP_BEARER_TOKEN`, `OPENAI_API_KEY`, `RM_CONNECT_TOKEN` (per-repo) |
+| GitHub Secrets | `TS_AUTHKEY`, `CF_TUNNEL_TOKEN`, `HTTP_BEARER_TOKEN`, `OPENAI_API_KEY`, `RM_CONNECT_TOKEN` (per-repo) |
 
 ---
 

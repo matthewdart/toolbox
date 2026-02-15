@@ -49,6 +49,7 @@ This repository defines a four-layer governance system, ordered by force level:
 
 ### Infrastructure
 - [Infrastructure Map](INFRASTRUCTURE_MAP.md) — end-to-end architecture map of all deployed components, data flows, and interactions
+- [Observability Conventions](OBSERVABILITY.md) — structured logging, health endpoints, request tracing, deployment verification
 
 ### Other
 - [Superseded artifacts](superseded/)

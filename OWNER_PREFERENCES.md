@@ -131,6 +131,9 @@ Agents should not passively wait for long-running processes. Active observation 
 - After any command, verify the result. Check exit codes, review output for warnings or errors, confirm expected files were created. Do not assume success.
 - When a process fails, read the full error output before proposing a fix. Do not guess from the error summary.
 - Build observability in by default. Scripts should produce meaningful output. Services should log enough to diagnose problems without attaching a debugger. Silent success is acceptable; silent failure is not.
+- Structured JSON logging to stdout is the default for all containerised services. See [OBSERVABILITY.md](OBSERVABILITY.md) for the envelope format and conventions.
+- Health endpoints must verify data layer readiness, not just process liveness. A `/health` that returns `{"status": "ok"}` without checking the database is a lie.
+- Request/response logging is mandatory for all HTTP services (method, path, status, duration_ms).
 - When deploying or modifying running services: verify the service is healthy after changes. Check logs, test endpoints, confirm expected behaviour.
 - Prefer streaming output (`--follow`, `tail -f`, `--progress`) over polling for completion.
 
@@ -190,4 +193,4 @@ The following are deliberately not used. Do not introduce them without explicit 
 - Kubernetes
 - Terraform or IaC tools
 - Abstract base classes in Python (use Protocol)
-- Logging frameworks (minimal/print-based logging)
+- Third-party logging frameworks beyond stdlib (loguru, structlog). Use Python `logging` with custom JSON formatters.
