@@ -26,6 +26,7 @@ SERVICES = [
         "smoke_tool": "remarkable_status",
         "smoke_args": {"detail": "summary"},
         "hostname": "remarkable-pipeline-mcp.matthewdart.name",
+        "mcp_transport": "streamable-http",
     },
     {
         "name": "health-ledger",
@@ -34,6 +35,7 @@ SERVICES = [
         "smoke_tool": "list_assets",
         "smoke_args": {},
         "hostname": "health-ledger.matthewdart.name",
+        "mcp_transport": "streamable-http",
     },
     {
         "name": "archi-mcp-bridge",
@@ -42,6 +44,7 @@ SERVICES = [
         "smoke_tool": "jarchi_catalog",
         "smoke_args": {},
         "hostname": "archi-mcp-bridge.matthewdart.name",
+        "mcp_transport": "custom-http",
     },
 ]
 
@@ -123,41 +126,119 @@ def _check_health_endpoint(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
         return {"status": "unreachable", "http_status": None, "error": str(exc)[:200]}
 
 
+def _mcp_session_curl(port: int, tool_name: str, tool_args: Dict[str, Any]) -> str:
+    """Build a shell script that performs a full MCP Streamable HTTP session.
+
+    MCP SDK v1.26+ requires: initialize → notifications/initialized → tools/call.
+    Responses are SSE streams; we extract the JSON-RPC result from the data: lines.
+    """
+    call_payload = json.dumps({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {"name": tool_name, "arguments": tool_args},
+    }).replace("'", "'\\''")
+
+    # Shell script that runs the 3-step handshake and extracts the result.
+    # Headers are inlined in each curl call to avoid shell quoting issues.
+    return f"""\
+set -e
+BASE="http://localhost:{port}/mcp"
+CT="Content-Type: application/json"
+AC="Accept: application/json, text/event-stream"
+
+# Step 1: initialize — capture session ID from response header
+INIT_RESP=$(curl -sS --max-time 10 -D /dev/stderr -X POST -H "$CT" -H "$AC" \
+  -d '{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2024-11-05","capabilities":{{}},"clientInfo":{{"name":"fleet-health","version":"0.1"}}}}}}' \
+  "$BASE" 2>&1 1>/dev/null || true)
+SID=$(echo "$INIT_RESP" | grep -i 'mcp-session-id' | head -1 | sed 's/.*: *//' | tr -d '\\r\\n')
+
+if [ -z "$SID" ]; then
+  echo '{{"ok":false,"error":"no session id from initialize"}}'
+  exit 0
+fi
+
+# Step 2: notifications/initialized
+curl -sS --max-time 5 -X POST -H "$CT" -H "$AC" -H "Mcp-Session-Id: $SID" \
+  -d '{{"jsonrpc":"2.0","method":"notifications/initialized"}}' \
+  "$BASE" >/dev/null 2>&1 || true
+
+# Step 3: tools/call — capture SSE data lines
+RESULT=$(curl -sS -N --max-time 15 -X POST -H "$CT" -H "$AC" -H "Mcp-Session-Id: $SID" \
+  -d '{call_payload}' \
+  "$BASE" 2>/dev/null | grep '^data: ' | head -1 | sed 's/^data: //')
+
+if [ -n "$RESULT" ]; then
+  echo "$RESULT"
+else
+  echo '{{"ok":false,"error":"no data in SSE response"}}'
+fi
+"""
+
+
 def _check_smoke_test(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
-    """Send a real MCP tools/call JSON-RPC request via SSH curl."""
+    """Send a real MCP tools/call request via SSH.
+
+    For MCP SDK Streamable HTTP services: performs full session handshake
+    (initialize → initialized → tools/call) and parses SSE response.
+    For custom HTTP services: sends a plain JSON-RPC POST.
+    """
     port = svc["port"]
     tool_name = svc["smoke_tool"]
     tool_args = svc["smoke_args"]
+    transport = svc.get("mcp_transport", "custom-http")
 
-    payload = json.dumps({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "tools/call",
-        "params": {"name": tool_name, "arguments": tool_args},
-    })
+    if transport == "streamable-http":
+        script = _mcp_session_curl(port, tool_name, tool_args)
+        try:
+            proc = _run_ssh(host, f"bash -c {_shell_quote(script)}", timeout=40)
+            output = proc.stdout.strip()
+            if proc.returncode != 0 or not output:
+                return {"tool": tool_name, "ok": False, "error": (proc.stderr or "empty response").strip()[:200]}
+            try:
+                body = json.loads(output)
+                if "error" in body and body.get("ok") is False:
+                    return {"tool": tool_name, "ok": False, "error": body["error"][:200]}
+                ok = "result" in body
+                return {"tool": tool_name, "ok": ok, "result_preview": output[:300]}
+            except json.JSONDecodeError:
+                return {"tool": tool_name, "ok": False, "error": f"bad json: {output[:200]}"}
+        except subprocess.TimeoutExpired:
+            return {"tool": tool_name, "ok": False, "error": "timeout"}
+        except Exception as exc:
+            return {"tool": tool_name, "ok": False, "error": str(exc)[:200]}
+    else:
+        # Custom HTTP: plain JSON-RPC POST
+        payload = json.dumps({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": tool_args},
+        })
+        escaped = payload.replace("'", "'\\''")
+        curl_cmd = (
+            f"curl -fsS --max-time 15 "
+            f"-H 'Content-Type: application/json' "
+            f"-X POST "
+            f"-d '{escaped}' "
+            f"http://localhost:{port}/mcp"
+        )
+        try:
+            proc = _run_ssh(host, curl_cmd, timeout=25)
+            if proc.returncode != 0:
+                return {"tool": tool_name, "ok": False, "error": proc.stderr.strip()[:200]}
+            ok = "result" in proc.stdout and "error" not in proc.stdout[:100]
+            preview = proc.stdout[:300] if ok else proc.stdout[:200]
+            return {"tool": tool_name, "ok": ok, "result_preview": preview}
+        except subprocess.TimeoutExpired:
+            return {"tool": tool_name, "ok": False, "error": "timeout"}
+        except Exception as exc:
+            return {"tool": tool_name, "ok": False, "error": str(exc)[:200]}
 
-    # Escape single quotes in payload for shell
-    escaped = payload.replace("'", "'\\''")
-    curl_cmd = (
-        f"curl -fsS --max-time 15 "
-        f"-H 'Content-Type: application/json' "
-        f"-X POST "
-        f"-d '{escaped}' "
-        f"http://localhost:{port}/mcp"
-    )
 
-    try:
-        proc = _run_ssh(host, curl_cmd, timeout=25)
-        if proc.returncode != 0:
-            return {"tool": tool_name, "ok": False, "error": proc.stderr.strip()[:200]}
-        # MCP streaming responses may have multiple JSON objects; check for any success
-        ok = "result" in proc.stdout and "error" not in proc.stdout[:100]
-        preview = proc.stdout[:300] if ok else proc.stdout[:200]
-        return {"tool": tool_name, "ok": ok, "result_preview": preview}
-    except subprocess.TimeoutExpired:
-        return {"tool": tool_name, "ok": False, "error": "timeout"}
-    except Exception as exc:
-        return {"tool": tool_name, "ok": False, "error": str(exc)[:200]}
+def _shell_quote(s: str) -> str:
+    """Quote a string for safe embedding in a shell command."""
+    return "'" + s.replace("'", "'\\''") + "'"
 
 
 def _check_local(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
@@ -204,7 +285,11 @@ def _check_tunnel_health(svc: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _check_tunnel_mcp(svc: Dict[str, Any]) -> Dict[str, Any]:
-    """Probe MCP endpoint via Cloudflare tunnel (just checks reachability)."""
+    """Probe MCP endpoint via Cloudflare tunnel (checks reachability).
+
+    Sends proper headers so MCP SDK services don't reject with 406.
+    Any HTTP response (even 400/422) proves the tunnel is connected.
+    """
     hostname = svc["hostname"]
     try:
         proc = _run_local_cmd(
@@ -212,6 +297,7 @@ def _check_tunnel_mcp(svc: Dict[str, Any]) -> Dict[str, Any]:
                 "curl", "-sS", "--max-time", "10",
                 "-X", "POST",
                 "-H", "Content-Type: application/json",
+                "-H", "Accept: application/json, text/event-stream",
                 "-d", "{}",
                 "-o", "/dev/null",
                 "-w", "%{http_code}",
