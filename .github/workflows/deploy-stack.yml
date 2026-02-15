@@ -32,6 +32,11 @@ on:
         required: false
         type: number
         default: 0
+      health_service:
+        description: "Compose service name to curl /health inside (uses docker compose exec)"
+        required: false
+        type: string
+        default: ""
       health_timeout:
         description: "Max seconds to wait for /health to return ok or degraded"
         required: false
@@ -125,14 +130,23 @@ jobs:
           HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
           PORT="${{ inputs.health_port }}"
+          SVC="${{ inputs.health_service }}"
           TIMEOUT="${{ inputs.health_timeout }}"
           INTERVAL=5
           ELAPSED=0
 
-          echo "Polling http://localhost:${PORT}/health (timeout ${TIMEOUT}s) ..."
+          # When health_service is set, curl inside the container (no published port needed).
+          # Otherwise fall back to curling localhost on the VM (requires published port).
+          if [ -n "$SVC" ]; then
+            CURL_CMD="cd $DIR && docker compose exec -T $SVC curl -sS http://localhost:${PORT}/health 2>/dev/null"
+          else
+            CURL_CMD="curl -sS http://localhost:${PORT}/health 2>/dev/null"
+          fi
+
+          echo "Polling /health on port ${PORT} (timeout ${TIMEOUT}s, service=${SVC:-host}) ..."
           while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
             RESPONSE=$(ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5 "$HOST" \
-              "curl -sS http://localhost:${PORT}/health 2>/dev/null" || true)
+              "$CURL_CMD" || true)
 
             STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
 
