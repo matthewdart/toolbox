@@ -91,6 +91,16 @@
         "type": "boolean",
         "description": "When true, write a JSON metadata file to output_dir.",
         "default": true
+      },
+      "live_from_start": {
+        "type": "boolean",
+        "description": "Record live streams from the beginning instead of the current position (requires DVR/rewind support from the platform).",
+        "default": false
+      },
+      "wait_for_video": {
+        "type": "boolean",
+        "description": "Wait for scheduled/upcoming live streams to start before downloading.",
+        "default": false
       }
     },
     "required": [
@@ -172,6 +182,20 @@
             },
             "downloaded": {
               "type": "boolean"
+            },
+            "is_live": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Whether the source is or was a live stream."
+            },
+            "live_status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Live stream status from yt-dlp: is_live, was_live, not_live, is_upcoming, or post_live."
             }
           },
           "required": [
