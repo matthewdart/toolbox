@@ -87,6 +87,32 @@
         ],
         "description": "Optional context to help the LLM identify speakers (e.g., event name, known attendees, company). Only used when identify_speakers is true.",
         "default": null
+      },
+      "slides_json": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional path to slides.json from media.analyze_video. Used with render_markdown to insert slide images inline at the correct timestamps.",
+        "default": null
+      },
+      "render_markdown": {
+        "type": "boolean",
+        "description": "When true and transcript_json is provided, produce an illustrated markdown transcript with slide images inserted inline. Requires slides_json for slide images.",
+        "default": false
+      },
+      "markdown_title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Title for the markdown document header. Defaults to 'Diarised Transcript'.",
+        "default": null
+      },
+      "clip_offset": {
+        "type": "number",
+        "description": "Offset in seconds to add to displayed timestamps in the markdown (e.g., 3600 if the clip starts at 1:00:00 in the original recording).",
+        "default": 0
       }
     },
     "required": [
@@ -163,6 +189,14 @@
         "additionalProperties": {
           "type": "string"
         },
+        "default": null
+      },
+      "markdown": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Path to transcript.md — an illustrated markdown transcript with speaker labels and slide images inline. Null if render_markdown was not enabled.",
         "default": null
       }
     },

@@ -238,6 +238,138 @@ def _apply_speaker_map(
 
 
 # ---------------------------------------------------------------------------
+# Illustrated markdown rendering
+# ---------------------------------------------------------------------------
+
+
+def _fmt_abs_time(seconds: float, clip_offset: float = 0.0) -> str:
+    total = int(seconds + clip_offset)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}"
+
+
+def _render_illustrated_markdown(
+    segments: List[Dict[str, Any]],
+    slides: List[Dict[str, Any]],
+    out_path: Path,
+    *,
+    title: str | None = None,
+    clip_offset: float = 0.0,
+    slides_base_dir: str | None = None,
+) -> None:
+    """Render an illustrated markdown transcript with slides inline.
+
+    *slides* is the list from slides.json (each with timestamp, image_path,
+    title, extracted_text, summary).  Slides are inserted between transcript
+    paragraphs at the point matching their timestamp.
+
+    *clip_offset* shifts all timestamps (e.g., 1800 if the clip starts at 30:00
+    in the original recording).
+
+    *slides_base_dir* controls how slide image paths are written.  When set,
+    image_path is made relative to this directory.  Otherwise the path from
+    slides.json is used as-is.
+    """
+    slides = sorted(slides, key=lambda s: s.get("timestamp", 0))
+
+    md: List[str] = []
+    if title:
+        md.append(f"# {title}")
+    else:
+        md.append("# Diarised Transcript")
+    md.append("")
+    md.append("---")
+    md.append("")
+
+    slide_idx = 0
+    current_speaker: str | None = None
+    current_para: List[str] = []
+
+    def flush_para() -> None:
+        if current_para:
+            md.append(" ".join(current_para))
+            md.append("")
+        current_para.clear()
+
+    for seg in segments:
+        text = (seg.get("text") or "").strip()
+        if not text:
+            continue
+        seg_start = float(seg.get("start", 0))
+
+        # Insert slides whose timestamp falls before this segment
+        while slide_idx < len(slides) and slides[slide_idx].get("timestamp", 0) < seg_start:
+            flush_para()
+            slide = slides[slide_idx]
+            slide_ts = slide.get("timestamp", 0)
+            slide_title = slide.get("title") or "(slide)"
+
+            # Resolve image path
+            img_path = slide.get("image_path", "")
+            if slides_base_dir and img_path:
+                try:
+                    img_path = str(Path(img_path).relative_to(slides_base_dir))
+                except ValueError:
+                    pass  # keep absolute
+
+            md.append("---")
+            md.append("")
+            md.append(
+                f"> **📊 {slide_title}** `{_fmt_abs_time(slide_ts, clip_offset)}`"
+            )
+            md.append(">")
+            md.append(f"> ![{slide_title}]({img_path})")
+            extracted = slide.get("extracted_text")
+            if extracted:
+                flat = extracted.replace("\n", " · ")
+                md.append(">")
+                md.append(f"> *{flat}*")
+            md.append("")
+            md.append("---")
+            md.append("")
+            current_speaker = None  # force new header after slide
+            slide_idx += 1
+
+        # Speaker change?
+        speaker = seg.get("speaker") or "UNKNOWN"
+        if speaker != current_speaker:
+            flush_para()
+            current_speaker = speaker
+            md.append(f"**{current_speaker}** `{_fmt_abs_time(seg_start, clip_offset)}`")
+            md.append("")
+
+        # Accumulate text, flush at sentence boundaries every ~400 chars
+        current_para.append(text)
+        joined = " ".join(current_para)
+        if joined.endswith((".", "?", "!")) and len(joined) > 400:
+            md.append(joined)
+            md.append("")
+            current_para.clear()
+
+    flush_para()
+
+    # Remaining slides after all segments
+    while slide_idx < len(slides):
+        slide = slides[slide_idx]
+        slide_title = slide.get("title") or "(slide)"
+        img_path = slide.get("image_path", "")
+        if slides_base_dir and img_path:
+            try:
+                img_path = str(Path(img_path).relative_to(slides_base_dir))
+            except ValueError:
+                pass
+        md.append(
+            f"> **📊 {slide_title}** `{_fmt_abs_time(slide.get('timestamp', 0), clip_offset)}`"
+        )
+        md.append(f"> ![{slide_title}]({img_path})")
+        md.append("")
+        slide_idx += 1
+
+    out_path.write_text("\n".join(md).rstrip() + "\n", encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -255,6 +387,10 @@ def diarize_audio(
     transcript_json: str | None = None,
     identify_speakers: bool = False,
     context_hint: str | None = None,
+    slides_json: str | None = None,
+    render_markdown: bool = False,
+    markdown_title: str | None = None,
+    clip_offset: float = 0.0,
 ) -> Dict[str, Any]:
     """Perform speaker diarisation on an audio or video file.
 
@@ -266,6 +402,12 @@ def diarize_audio(
     uses an LLM (OpenAI) to map SPEAKER_XX labels to real names from
     contextual clues in the transcript. *context_hint* provides optional
     additional context (e.g., event name, known speakers).
+
+    If *render_markdown* is True and *transcript_json* is provided,
+    produces an illustrated markdown file with slide images inserted
+    inline at the correct timestamps. Requires *slides_json* (path to
+    ``slides.json`` from ``media.analyze_video``). *clip_offset* shifts
+    displayed timestamps (e.g., 3600 if the clip starts at 1:00:00).
     """
     try:
         from pyannote.audio import Pipeline  # type: ignore
@@ -362,6 +504,7 @@ def diarize_audio(
     # --- Optional transcript merge ---
     diarized_transcript_path: Path | None = None
     diarized_srt_path: Path | None = None
+    enriched_segments: List[Dict[str, Any]] | None = None
     speaker_map: Dict[str, str] = {}
 
     if transcript_json:
@@ -412,6 +555,25 @@ def diarize_audio(
             encoding="utf-8",
         )
 
+    # --- Optional illustrated markdown ---
+    markdown_path: Path | None = None
+    if render_markdown and transcript_json and enriched_segments is not None:
+        slides: List[Dict[str, Any]] = []
+        if slides_json:
+            sj = Path(slides_json).expanduser().resolve()
+            if sj.is_file():
+                slides = json.loads(sj.read_text(encoding="utf-8"))
+
+        markdown_path = out_root / "transcript.md"
+        _render_illustrated_markdown(
+            enriched_segments,
+            slides,
+            markdown_path,
+            title=markdown_title,
+            clip_offset=clip_offset,
+            slides_base_dir=str(out_root),
+        )
+
     return {
         "output_dir": str(out_root),
         "turns": turns,
@@ -422,4 +584,5 @@ def diarize_audio(
         if diarized_transcript_path
         else None,
         "diarized_srt": str(diarized_srt_path) if diarized_srt_path else None,
+        "markdown": str(markdown_path) if markdown_path else None,
     }
