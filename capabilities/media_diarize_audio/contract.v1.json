@@ -74,6 +74,19 @@
         ],
         "description": "Optional path to a transcript.verbose.json from media.analyze_video. When provided, output includes speaker-attributed transcript segments and SRT.",
         "default": null
+      },
+      "identify_speakers": {
+        "type": "boolean",
+        "description": "When true and transcript_json is provided, use an LLM (OpenAI) to identify speaker names from contextual clues in the transcript (introductions, hand-overs, slide references). Requires OPENAI_API_KEY.",
+        "default": false
+      },
+      "context_hint": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional context to help the LLM identify speakers (e.g., event name, known attendees, company). Only used when identify_speakers is true.",
+        "default": null
       }
     },
     "required": [
@@ -139,6 +152,17 @@
           "null"
         ],
         "description": "Path to transcript.diarized.srt with speaker prefixes. Null if transcript_json was not provided.",
+        "default": null
+      },
+      "speaker_map": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "Mapping of SPEAKER_XX labels to identified names (e.g., {\"SPEAKER_00\": \"Jane Smith, CEO\"}). Null if identify_speakers was not used or no speakers could be identified.",
+        "additionalProperties": {
+          "type": "string"
+        },
         "default": null
       }
     },
