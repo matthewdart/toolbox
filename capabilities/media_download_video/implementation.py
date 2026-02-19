@@ -421,6 +421,8 @@ def download_video(
     overwrite: bool = False,
     quiet: bool = False,
     write_info_json: bool = True,
+    live_from_start: bool = False,
+    wait_for_video: bool = False,
 ) -> Dict[str, Any]:
     """Download a video URL to a local file and return resolved paths.
 
@@ -478,6 +480,11 @@ def download_video(
     if ffmpeg:
         ydl_opts["ffmpeg_location"] = ffmpeg
 
+    if live_from_start:
+        ydl_opts["live_from_start"] = True
+    if wait_for_video:
+        ydl_opts["wait_for_video"] = (0, 0)
+
     downloaded_paths: List[str] = []
 
     def _hook(d: Dict[str, Any]) -> None:
@@ -532,6 +539,9 @@ def download_video(
                     path = candidate
                     break
 
+        is_live = entry.get("is_live")
+        live_status = entry.get("live_status")
+
         files.append(
             {
                 "id": entry.get("id"),
@@ -543,6 +553,8 @@ def download_video(
                 "filesize_bytes": _entry_filesize(entry),
                 "path": path,
                 "downloaded": bool(download) and bool(path) and Path(path).exists(),
+                "is_live": bool(is_live) if is_live is not None else None,
+                "live_status": str(live_status) if live_status is not None else None,
             }
         )
 

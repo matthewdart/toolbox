@@ -47,6 +47,11 @@
             "null"
           ]
         },
+        "live_from_start": {
+          "default": false,
+          "description": "Record live streams from the beginning instead of the current position (requires DVR/rewind support from the platform).",
+          "type": "boolean"
+        },
         "output_dir": {
           "default": null,
           "description": "Directory where downloads are written. Defaults to ./downloads.",
@@ -84,6 +89,11 @@
             "string",
             "null"
           ]
+        },
+        "wait_for_video": {
+          "default": false,
+          "description": "Wait for scheduled/upcoming live streams to start before downloading.",
+          "type": "boolean"
         },
         "write_info_json": {
           "default": true,

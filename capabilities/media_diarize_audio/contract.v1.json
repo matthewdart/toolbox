@@ -1,0 +1,170 @@
+{
+  "name": "media.diarize_audio",
+  "description": "Perform speaker diarisation on an audio or video file using pyannote-audio, returning timestamped speaker turns. Optionally merge with a Whisper transcript to produce speaker-attributed segments.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "audio_path": {
+        "type": "string",
+        "description": "Path to an audio or video file (any format readable by ffmpeg)."
+      },
+      "model": {
+        "type": "string",
+        "description": "Pyannote pipeline name. Use 'pyannote/speaker-diarization-community-1' (free, local) or 'pyannote/speaker-diarization-precision-2' (cloud API).",
+        "default": "pyannote/speaker-diarization-community-1"
+      },
+      "token": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "HuggingFace token (for community models) or pyannoteAI API key (for precision models). Falls back to HF_TOKEN or PYANNOTE_API_KEY environment variables.",
+        "default": null
+      },
+      "num_speakers": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1,
+        "description": "Exact number of speakers if known.",
+        "default": null
+      },
+      "min_speakers": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1,
+        "description": "Minimum expected number of speakers.",
+        "default": null
+      },
+      "max_speakers": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1,
+        "description": "Maximum expected number of speakers.",
+        "default": null
+      },
+      "device": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "PyTorch device for local models (e.g., 'cuda', 'cpu', 'mps'). Auto-detected if null. Ignored for cloud models.",
+        "default": null
+      },
+      "output_dir": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Directory for output files. Defaults to ./<audio_stem>_diarization.",
+        "default": null
+      },
+      "transcript_json": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional path to a transcript.verbose.json from media.analyze_video. When provided, output includes speaker-attributed transcript segments and SRT.",
+        "default": null
+      }
+    },
+    "required": [
+      "audio_path"
+    ]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output_dir": {
+        "type": "string"
+      },
+      "turns": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "type": "number",
+              "description": "Turn start time in seconds."
+            },
+            "end": {
+              "type": "number",
+              "description": "Turn end time in seconds."
+            },
+            "speaker": {
+              "type": "string",
+              "description": "Speaker label (e.g., 'SPEAKER_00')."
+            }
+          },
+          "required": [
+            "start",
+            "end",
+            "speaker"
+          ]
+        }
+      },
+      "speakers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Unique speaker labels found."
+      },
+      "diarization_json": {
+        "type": "string",
+        "description": "Path to diarization.json containing full turns and speaker list."
+      },
+      "diarized_transcript_json": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Path to transcript.diarized.json with speaker-attributed segments. Null if transcript_json was not provided.",
+        "default": null
+      },
+      "diarized_srt": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Path to transcript.diarized.srt with speaker prefixes. Null if transcript_json was not provided.",
+        "default": null
+      }
+    },
+    "required": [
+      "output_dir",
+      "turns",
+      "speakers",
+      "diarization_json",
+      "diarized_transcript_json",
+      "diarized_srt"
+    ]
+  },
+  "errors": [
+    {
+      "code": "validation_error",
+      "description": "Input did not match schema."
+    },
+    {
+      "code": "output_validation_error",
+      "description": "Output did not match schema."
+    },
+    {
+      "code": "capability_error",
+      "description": "Diarisation failed (missing pyannote-audio, invalid token, audio unreadable, etc.)."
+    }
+  ],
+  "side_effects": "Downloads pyannote model weights on first use (community models). Cloud models send audio to pyannoteAI servers. Writes output files to output_dir.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}
