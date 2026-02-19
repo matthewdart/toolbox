@@ -9,6 +9,14 @@
           "description": "Path to an audio or video file (any format readable by ffmpeg).",
           "type": "string"
         },
+        "context_hint": {
+          "default": null,
+          "description": "Optional context to help the LLM identify speakers (e.g., event name, known attendees, company). Only used when identify_speakers is true.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "device": {
           "default": null,
           "description": "PyTorch device for local models (e.g., 'cuda', 'cpu', 'mps'). Auto-detected if null. Ignored for cloud models.",
@@ -16,6 +24,11 @@
             "string",
             "null"
           ]
+        },
+        "identify_speakers": {
+          "default": false,
+          "description": "When true and transcript_json is provided, use an LLM (OpenAI) to identify speaker names from contextual clues in the transcript (introductions, hand-overs, slide references). Requires OPENAI_API_KEY.",
+          "type": "boolean"
         },
         "max_speakers": {
           "default": null,

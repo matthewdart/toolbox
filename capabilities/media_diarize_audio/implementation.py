@@ -2,6 +2,7 @@
 
 Prototype-mode implementation. Supports both the free community-1 model
 (runs locally) and the premium precision-2 model (runs on pyannoteAI servers).
+Optional LLM-based speaker identification maps SPEAKER_XX labels to real names.
 """
 
 from __future__ import annotations
@@ -103,6 +104,140 @@ def _assign_speakers_to_segments(
 
 
 # ---------------------------------------------------------------------------
+# Speaker identification via LLM
+# ---------------------------------------------------------------------------
+
+
+def _identify_speakers_llm(
+    segments: List[Dict[str, Any]],
+    speakers: List[str],
+    *,
+    openai_api_key: str | None = None,
+    model: str = "gpt-4.1-mini",
+    context_hint: str | None = None,
+) -> Dict[str, str]:
+    """Use an LLM to map SPEAKER_XX labels to real names.
+
+    Analyses the diarised transcript for contextual clues — introductions,
+    hand-overs, slide titles mentioning names — and returns a mapping of
+    ``{SPEAKER_XX: "Name, Role"}`` for every speaker it can identify.
+    """
+    api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return {}
+
+    try:
+        from openai import OpenAI  # type: ignore
+    except ImportError:
+        return {}
+
+    # Build a condensed transcript excerpt — first ~8000 chars of diarised text
+    # plus the last ~2000 chars (where wrap-up/handovers happen).
+    lines: List[str] = []
+    char_count = 0
+    for seg in segments:
+        speaker = seg.get("speaker") or "UNKNOWN"
+        text = (seg.get("text") or "").strip()
+        if not text:
+            continue
+        start = seg.get("start", 0)
+        m, s = divmod(int(start), 60)
+        line = f"[{speaker}] ({m}:{s:02d}) {text}"
+        lines.append(line)
+        char_count += len(line)
+        if char_count > 8000:
+            break
+
+    # Also grab tail of transcript
+    tail_lines: List[str] = []
+    tail_chars = 0
+    for seg in reversed(segments):
+        speaker = seg.get("speaker") or "UNKNOWN"
+        text = (seg.get("text") or "").strip()
+        if not text:
+            continue
+        start = seg.get("start", 0)
+        m, s = divmod(int(start), 60)
+        line = f"[{speaker}] ({m}:{s:02d}) {text}"
+        tail_lines.insert(0, line)
+        tail_chars += len(line)
+        if tail_chars > 2000:
+            break
+
+    excerpt = "\n".join(lines)
+    if tail_lines and tail_lines[0] != lines[-1]:
+        excerpt += "\n\n[... later in the recording ...]\n\n" + "\n".join(tail_lines)
+
+    context_section = ""
+    if context_hint:
+        context_section = f"\n\nAdditional context provided by the user:\n{context_hint}\n"
+
+    system_prompt = (
+        "You are an expert at identifying speakers from transcripts. "
+        "You will be given a diarised transcript where speakers are labelled "
+        "SPEAKER_00, SPEAKER_01 etc. Your task is to identify the real names "
+        "of as many speakers as possible.\n\n"
+        "Look for clues such as:\n"
+        "- Self-introductions ('I'm X', 'My name is X')\n"
+        "- Hand-overs ('Let me hand over to X', 'Over to you X', 'Thank you X')\n"
+        "- Third-person references ('As X mentioned', 'X will present')\n"
+        "- Context about roles/titles mentioned near speaker changes\n\n"
+        "Return ONLY a JSON object mapping speaker IDs to names. "
+        "Include a role/title if identifiable. For speakers you cannot identify, "
+        "do not include them in the output.\n\n"
+        "Example output:\n"
+        '{"SPEAKER_00": "Jane Smith, CEO", "SPEAKER_02": "John Doe, CFO"}\n\n'
+        "Return ONLY the JSON object, no other text."
+    )
+
+    user_prompt = (
+        f"Here are the speaker labels found: {', '.join(speakers)}\n"
+        f"{context_section}\n"
+        f"Diarised transcript excerpt:\n\n{excerpt}"
+    )
+
+    try:
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+            max_tokens=500,
+        )
+        raw = response.choices[0].message.content.strip()
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+            raw = raw.strip()
+        mapping = json.loads(raw)
+        # Validate: keys must be in speakers list, values must be strings
+        return {k: str(v) for k, v in mapping.items() if k in speakers and v}
+    except Exception:
+        return {}
+
+
+def _apply_speaker_map(
+    segments: List[Dict[str, Any]],
+    speaker_map: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """Replace SPEAKER_XX labels with real names where identified."""
+    result = []
+    for seg in segments:
+        seg = dict(seg)
+        speaker = seg.get("speaker")
+        if speaker and speaker in speaker_map:
+            seg["speaker"] = speaker_map[speaker]
+            seg["speaker_id"] = speaker  # preserve original ID
+        result.append(seg)
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -118,12 +253,19 @@ def diarize_audio(
     device: str | None = None,
     output_dir: str | None = None,
     transcript_json: str | None = None,
+    identify_speakers: bool = False,
+    context_hint: str | None = None,
 ) -> Dict[str, Any]:
     """Perform speaker diarisation on an audio or video file.
 
     Returns timestamped speaker turns. If *transcript_json* is provided
     (a ``transcript.verbose.json`` from ``media.analyze_video``), the
     output also includes speaker-attributed transcript segments and SRT.
+
+    If *identify_speakers* is True and *transcript_json* is provided,
+    uses an LLM (OpenAI) to map SPEAKER_XX labels to real names from
+    contextual clues in the transcript. *context_hint* provides optional
+    additional context (e.g., event name, known speakers).
     """
     try:
         from pyannote.audio import Pipeline  # type: ignore
@@ -220,6 +362,7 @@ def diarize_audio(
     # --- Optional transcript merge ---
     diarized_transcript_path: Path | None = None
     diarized_srt_path: Path | None = None
+    speaker_map: Dict[str, str] = {}
 
     if transcript_json:
         tj = Path(transcript_json).expanduser().resolve()
@@ -231,10 +374,25 @@ def diarize_audio(
 
         enriched_segments = _assign_speakers_to_segments(segments, turns)
 
+        # --- Optional speaker identification ---
+        if identify_speakers:
+            speaker_map = _identify_speakers_llm(
+                enriched_segments,
+                speakers,
+                context_hint=context_hint,
+            )
+            if speaker_map:
+                enriched_segments = _apply_speaker_map(enriched_segments, speaker_map)
+                # Also update turns with named speakers
+                for t in turns:
+                    if t["speaker"] in speaker_map:
+                        t["speaker_name"] = speaker_map[t["speaker"]]
+
         diarized_transcript = {
             "text": transcript.get("text", ""),
             "segments": enriched_segments,
             "speakers": speakers,
+            "speaker_map": speaker_map if speaker_map else None,
         }
         diarized_transcript_path = out_root / "transcript.diarized.json"
         diarized_transcript_path.write_text(
@@ -245,10 +403,20 @@ def diarize_audio(
         diarized_srt_path = out_root / "transcript.diarized.srt"
         _write_diarized_srt(enriched_segments, diarized_srt_path)
 
+    # --- Write speaker_map.json if we identified speakers ---
+    speaker_map_path: Path | None = None
+    if speaker_map:
+        speaker_map_path = out_root / "speaker_map.json"
+        speaker_map_path.write_text(
+            json.dumps(speaker_map, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
     return {
         "output_dir": str(out_root),
         "turns": turns,
         "speakers": speakers,
+        "speaker_map": speaker_map if speaker_map else None,
         "diarization_json": str(diarization_json_path),
         "diarized_transcript_json": str(diarized_transcript_path)
         if diarized_transcript_path
