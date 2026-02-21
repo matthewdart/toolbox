@@ -17,12 +17,31 @@ The templates operationalise the handbook's four-layer governance hierarchy:
 
 ## Files
 
+### Templates (copy and customise per repo)
+
 | Template | Purpose | Audience | Required? |
 |---|---|---|---|
 | `AGENTS.md.template` | Agent behaviour rules and repo-specific constraints | All AI agents (Claude, Codex, Copilot, etc.) | Yes, all repos |
 | `CLAUDE.md.template` | Claude Code entry point — imports AGENTS.md + preferences via `@` syntax | Claude Code only | Yes, all repos |
 | `CONTRIBUTING.md.template` | Human contributor guide (bug reports, PRs, dev setup) | Human contributors | Optional |
-| `.claude/agents/code-reviewer.md.template` | Code review sub-agent persona | Claude Code sub-agents | Optional |
+
+### Ecosystem agents (distributed via symlink)
+
+These live in [`../agents/`](../agents/) and are distributed to consuming repos via a whole-directory symlink (see [Agent distribution](#agent-distribution) below). They require no per-repo customisation.
+
+| Agent | Purpose | Colour |
+|---|---|---|
+| `code-reviewer-python.md` | Python code review with ecosystem conventions (future annotations, pathlib, dataclasses, Protocol) | cyan |
+| `code-reviewer-typescript.md` | TypeScript code review with ecosystem conventions (strict mode, interfaces, vitest, npm) | cyan |
+| `code-reviewer-java.md` | Java code review for Eclipse/OSGi plugin context (archi-mcp-bridge, jArchi constraints) | cyan |
+| `code-reviewer-sql.md` | SQL code review with ecosystem conventions (DuckDB, views as modelling surface, numbered files) | cyan |
+| `handbook-enforcer.md` | Audit a repo against the full handbook governance hierarchy | yellow |
+| `handbook-maintainer.md` | Review sessions and identify new patterns for handbook evolution | green |
+| `contract-validator.md` | Verify code implements what contracts promise (CONTRACT.md, contract.v1.json, OpenAPI) | red |
+| `fleet-auditor.md` | Audit MCP fleet config, runtime state, and portal registrations for consistency | blue |
+| `documentation-sync.md` | Detect documentation drift — adapts scope by workflow tier (Tier 1 / Tier 2) | magenta |
+| `impact-tracer.md` | Trace downstream effects of a change across code, contracts, docs, infra, and cross-repo | orange |
+| `worktree-coordinator.md` | Track multi-worktree session state, phase status, and merge readiness | white |
 
 ## Workflow tiers
 
@@ -42,6 +61,61 @@ Repos start at Tier 1. Structure appears when pressure demands it.
 3. Remove or keep `<!-- IF APPLICABLE -->` sections as appropriate
 4. Vendor the handbook: `git subtree add --prefix vendor/handbook https://github.com/matthewdart/handbook.git master --squash`
 5. Update the Governance section paths to point to the vendored handbook
+6. Set up the agent symlink (see below)
+
+## Agent distribution
+
+Ecosystem agents are shared via the handbook and require no per-repo customisation. They are distributed using a whole-directory symlink from `.claude/agents/` to the vendored handbook.
+
+### Setting up the symlink
+
+After vendoring the handbook, create the symlink:
+
+```bash
+# Remove any existing .claude/agents/ directory (back up local agents first)
+rm -rf .claude/agents
+
+# Create the symlink
+ln -s ../vendor/handbook/agents .claude/agents
+
+# Commit the symlink
+git add .claude/agents
+git commit -m "link ecosystem agents from vendored handbook"
+```
+
+The symlink is relative (`../vendor/handbook/agents`), so it works on any machine that has the repo cloned. It is committed to git and travels with the repo.
+
+### How it works
+
+```
+consuming-repo/
+  .claude/
+    agents -> ../vendor/handbook/agents   (symlink, committed to git)
+  vendor/
+    handbook/                              (git subtree, committed)
+      agents/
+        handbook-enforcer.md
+        code-reviewer-python.md
+        ...
+```
+
+Claude Code discovers agents at `.claude/agents/*.md`. The symlink makes it see the vendored handbook agents transparently.
+
+### Update flow
+
+When the handbook adds or updates agents:
+
+```bash
+git subtree pull --prefix vendor/handbook https://github.com/matthewdart/handbook.git master --squash
+```
+
+The symlink doesn't change — it still points to `../vendor/handbook/agents`. But the content behind it updates automatically. No additional steps required.
+
+### Portability
+
+- **macOS / Linux**: symlinks work natively
+- **GitHub Actions (Ubuntu)**: symlinks work natively
+- **Windows**: requires `core.symlinks=true` in git config (not relevant for this ecosystem)
 
 ## Keeping the handbook up to date
 

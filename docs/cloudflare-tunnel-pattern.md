@@ -134,10 +134,10 @@ curl -fsS https://my-service.matthewdart.name/health
 
 ## Toolbox Capability
 
-Generate config with the `infra.setup_cloudflare_tunnel` capability:
+Generate config with the `cloudflare.setup_tunnel` capability:
 
 ```bash
-python -m core.dispatch --capability infra.setup_cloudflare_tunnel --input-json '{
+python -m core.dispatch --capability cloudflare.setup_tunnel --input-json '{
   "service": "my-service",
   "port": 8080,
   "hostname": "my-service.matthewdart.name"

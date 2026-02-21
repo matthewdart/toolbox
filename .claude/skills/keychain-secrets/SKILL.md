@@ -216,11 +216,11 @@ export CLOUDFLARE_API_KEY="$(security find-generic-password -s 'Cloudflare Globa
 
 | Service name | Account | Env var | Comment (`-j`) | Used by |
 |---|---|---|---|---|
-| `Cloudflare Global API Key` | *(account ID)* | `CLOUDFLARE_API_KEY` | `env:CLOUDFLARE_API_KEY acct:CLOUDFLARE_ACCOUNT_ID email:...` | `infra.setup_mcp_portal` |
+| `Cloudflare Global API Key` | *(account ID)* | `CLOUDFLARE_API_KEY` | `env:CLOUDFLARE_API_KEY acct:CLOUDFLARE_ACCOUNT_ID email:...` | `cloudflare.setup_mcp_portal` |
 | `OpenAI API Key` | *(project name)* | `OPENAI_API_KEY` | — | `media.analyze_video`, `openai.calculate_usage_cost` |
-| `GitHub Classic Personal Access Token` | *(username)* | `GHCR_TOKEN` | `env:GHCR_TOKEN` | `infra.ghcr_push` |
+| `GitHub Classic Personal Access Token` | *(username)* | `GHCR_TOKEN` | `env:GHCR_TOKEN` | `github.push_ghcr` |
 
-Note: `infra.setup_mcp_portal` also needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_EMAIL`. These are not secrets — derive them from the `Cloudflare Global API Key` entry's metadata using the `acct:` and `email:` hints (see "Deriving related values" above).
+Note: `cloudflare.setup_mcp_portal` also needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_EMAIL`. These are not secrets — derive them from the `Cloudflare Global API Key` entry's metadata using the `acct:` and `email:` hints (see "Deriving related values" above).
 
 ## Notes
 
