@@ -78,7 +78,7 @@ When a server is added via the dashboard, an Access Application (`type: mcp`) is
 Via the toolbox capability (preferred):
 
 ```bash
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "add_server",
   "name": "health-ledger",
   "url": "https://health-ledger.matthewdart.name/mcp"
@@ -99,7 +99,7 @@ Or via the dashboard:
 Registering a server does **not** automatically add it to a portal. Assign servers explicitly:
 
 ```bash
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "update_portal_servers",
   "portal_id": "mcp-portal",
   "server_ids": ["archi-mcp-bridge", "remarkable-pipeline-mcp", "health-ledger"]
@@ -168,7 +168,7 @@ Use the `verify_portal` command to check that all servers are correctly configur
 4. **MCP endpoint** — `POST <hostname>/mcp` is reachable (any HTTP response means the server is up; only connection/timeout errors indicate failure)
 
 ```bash
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "verify_portal",
   "portal_id": "mcp-portal"
 }'
@@ -188,47 +188,47 @@ Logs include individual requests, tool invocations, and authentication events.
 
 ## Toolbox Capability
 
-Manage MCP servers and portals via the `infra.setup_mcp_portal` capability. The `account_id` parameter defaults to the `CLOUDFLARE_ACCOUNT_ID` environment variable.
+Manage MCP servers and portals via the `cloudflare.setup_mcp_portal` capability. The `account_id` parameter defaults to the `CLOUDFLARE_ACCOUNT_ID` environment variable.
 
 ```bash
 # List registered servers
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "list_servers"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "list_servers"}'
 
 # List portals
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "list_portals"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "list_portals"}'
 
 # Get portal detail (including assigned server list)
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "get_portal", "portal_id": "mcp-portal"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "get_portal", "portal_id": "mcp-portal"}'
 
 # Register a new server
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "add_server",
   "name": "health-ledger",
   "url": "https://health-ledger.matthewdart.name/mcp"
 }'
 
 # Update a server's URL
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "update_server",
   "server_id": "health-ledger",
   "url": "https://health-ledger.matthewdart.name/mcp"
 }'
 
 # Sync capabilities
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "sync_server", "server_id": "health-ledger"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "sync_server", "server_id": "health-ledger"}'
 
 # Assign servers to portal (replaces full list)
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{
   "command": "update_portal_servers",
   "portal_id": "mcp-portal",
   "server_ids": ["archi-mcp-bridge", "remarkable-pipeline-mcp", "health-ledger"]
 }'
 
 # Verify portal end-to-end (registration, assignment, health, MCP probes)
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "verify_portal", "portal_id": "mcp-portal"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "verify_portal", "portal_id": "mcp-portal"}'
 
 # Remove a server
-python -m core.dispatch --capability infra.setup_mcp_portal --input-json '{"command": "remove_server", "server_id": "health-ledger"}'
+python -m core.dispatch --capability cloudflare.setup_mcp_portal --input-json '{"command": "remove_server", "server_id": "health-ledger"}'
 ```
 
 Requires `CLOUDFLARE_ACCOUNT_ID` and either `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL`. No external dependencies.

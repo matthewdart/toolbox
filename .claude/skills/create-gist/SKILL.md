@@ -9,7 +9,7 @@ Create a secret GitHub gist using the `gh` CLI.
 
 ## Quick Reference
 
-The `gist.create_private` capability handles this programmatically via the MCP server. For direct use:
+The `github.create_gist` capability handles this programmatically via the MCP server. For direct use:
 
 ```bash
 # From files

@@ -1,0 +1,32 @@
+{
+  "function": {
+    "description": "Preflight check for VM deployment readiness. Connects via SSH and verifies Docker, Docker Compose, architecture, GHCR authentication, Tailscale, and per-service compose directory layout.",
+    "name": "infra.bootstrap_vm",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "compose_dirs": {
+          "default": [
+            "/opt/remarkable-pipeline",
+            "/opt/health-ledger",
+            "/opt/archi-mcp-bridge"
+          ],
+          "description": "Absolute paths to Docker Compose project directories on the remote host.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "host": {
+          "description": "SSH host target (e.g. user@hostname or an SSH config alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

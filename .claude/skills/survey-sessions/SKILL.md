@@ -9,10 +9,10 @@ Survey and export Claude sessions across local CLI, web Claude Code, and claude.
 
 ## Invocation
 
-Call the `session.survey_sessions` capability via MCP:
+Call the `claude.survey_sessions` capability via MCP:
 
 ```
-session.survey_sessions()
+claude.survey_sessions()
 ```
 
 ## Parameters

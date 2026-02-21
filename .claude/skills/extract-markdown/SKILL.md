@@ -9,10 +9,10 @@ Extract markdown from a ChatGPT Canvas shared URL.
 
 ## Invocation
 
-Call the `canvas.extract_markdown` capability via MCP:
+Call the `chatgpt.extract_markdown` capability via MCP:
 
 ```
-canvas.extract_markdown(url="...")
+chatgpt.extract_markdown(url="...")
 ```
 
 ## Parameters

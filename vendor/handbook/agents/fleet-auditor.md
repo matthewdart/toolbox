@@ -158,11 +158,11 @@ Review the /health response for each service:
 
 ## Layer 3: Portal Verification
 
-Use the `setup_mcp_portal` capability (in `capabilities/setup_mcp_portal/`) to query Cloudflare MCP Portal state. This capability can list registered servers and portals.
+Use the `setup_mcp_portal` capability (in `capabilities/cloudflare_setup_mcp_portal/`) to query Cloudflare MCP Portal state. This capability can list registered servers and portals.
 
 ### Registry ↔ Portal Alignment
 
-Cross-reference the fleet-health SERVICES registry (in `capabilities/fleet_health/implementation.py`) against the Cloudflare MCP Portal:
+Cross-reference the fleet-health SERVICES registry (in `capabilities/infra_check_fleet/implementation.py`) against the Cloudflare MCP Portal:
 
 | Fleet registry says | Portal should show |
 |--------------------|--------------------|

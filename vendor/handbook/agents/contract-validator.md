@@ -65,7 +65,7 @@ These are machine-readable capability contracts in `capabilities/*/contract.v1.j
 
 **Structural validation — required fields:**
 Every contract.v1.json must have:
-- `name` — follows `<domain>.<verb>_<object>` naming (e.g., `infra.stack_status`)
+- `name` — follows `<domain>.<verb>_<object>` naming (e.g., `infra.check_stack`)
 - `description` — non-empty
 - `version` — follows `v1`, `v2`, etc.
 - `input_schema` — valid JSON Schema (Draft-07)

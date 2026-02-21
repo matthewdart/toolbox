@@ -9,10 +9,10 @@ Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Support
 
 ## Invocation
 
-Call the `infra.setup_mcp_portal` capability via MCP:
+Call the `cloudflare.setup_mcp_portal` capability via MCP:
 
 ```
-infra.setup_mcp_portal(command="...")
+cloudflare.setup_mcp_portal(command="...")
 ```
 
 ## Parameters

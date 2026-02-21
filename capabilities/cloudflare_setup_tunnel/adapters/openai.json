@@ -1,0 +1,52 @@
+{
+  "function": {
+    "description": "Generate Cloudflare Tunnel sidecar configuration for a Docker Compose service. Produces a cloudflared compose service block, .env template, and dashboard setup instructions.",
+    "name": "cloudflare.setup_tunnel",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "description": "If true, generate config strings but do not write any files even if output_dir is set.",
+          "type": "boolean"
+        },
+        "hostname": {
+          "description": "Public hostname in subdomain.domain format (e.g. archi-mcp.matthewdart.name).",
+          "type": "string"
+        },
+        "network_mode": {
+          "default": "service",
+          "description": "Networking strategy: 'service' (cloudflared shares app network namespace) or 'host' (both use host networking).",
+          "enum": [
+            "service",
+            "host"
+          ],
+          "type": "string"
+        },
+        "output_dir": {
+          "default": null,
+          "description": "Directory to write generated files. If null, no files are written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "port": {
+          "description": "Port the service listens on inside the container.",
+          "type": "integer"
+        },
+        "service": {
+          "description": "Service name (must match the app service name in docker-compose.yml).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "port",
+        "hostname"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

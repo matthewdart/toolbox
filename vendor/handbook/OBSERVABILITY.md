@@ -142,7 +142,7 @@ This catches "container running but service not functional" deploy failures.
 
 ## 6. Fleet Health
 
-The `infra.fleet_health` toolbox capability verifies all services across local (SSH) and tunnel (Cloudflare HTTPS) surfaces. Three scopes:
+The `infra.check_fleet` toolbox capability verifies all services across local (SSH) and tunnel (Cloudflare HTTPS) surfaces. Three scopes:
 
 - **local**: Container status + health endpoint + MCP smoke test (via SSH)
 - **tunnel**: Health probe + MCP reachability (via Cloudflare HTTPS)

@@ -21,8 +21,8 @@ SKILLS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "skills"
 def _slug_from_id(capability_id: str) -> str:
     """Derive a kebab-case skill slug from a capability ID.
 
-    infra.fleet_health     -> fleet-health
-    session.survey_sessions -> survey-sessions
+    infra.check_fleet     -> fleet-health
+    claude.survey_sessions -> survey-sessions
 
     Default: strip domain prefix, replace underscores with hyphens.
     """
@@ -35,7 +35,7 @@ def _slug_from_id(capability_id: str) -> str:
 def _existing_skill_covers(capability_id: str, skills_dir: Path) -> str | None:
     """Check if any existing SKILL.md wraps/invokes this capability.
 
-    Looks for patterns like '`gist.create_private` capability' that indicate
+    Looks for patterns like '`github.create_gist` capability' that indicate
     the skill is specifically about this capability — not just a passing mention
     (e.g. keychain-secrets listing capabilities in a "Used by" table).
 
