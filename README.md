@@ -31,6 +31,7 @@ This repository defines a four-layer governance system, ordered by force level:
 - [Archi Maintainer Acceptance Audit](audits/ARCHI_MAINTAINER_ACCEPTANCE_AUDIT.md)
 - [Governance Consistency & Drift Audit](audits/GOVERNANCE_CONSISTENCY_AUDIT.md)
 - [AGENTS.md Conformance & Drift Audit](audits/AGENTS_CONFORMANCE_AUDIT.md)
+- [Codebase Architecture Audit](audits/CODEBASE_ARCHITECTURE_AUDIT.md)
 
 ### Reports
 - [Governance Consistency Audit — 2026-01-27](reports/REPORT-2026-01-27T222916Z.md)
