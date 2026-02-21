@@ -1,0 +1,99 @@
+{
+  "name": "session.survey_sessions",
+  "description": "Survey and export Claude sessions across local CLI, web Claude Code, and claude.ai chat conversations.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "sources": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["cli", "code", "chat"]
+        },
+        "default": ["cli", "code", "chat"],
+        "description": "Which session sources to include: 'cli' (local .jsonl), 'code' (web Claude Code), 'chat' (claude.ai conversations)."
+      },
+      "org_id": {
+        "type": ["string", "null"],
+        "default": null,
+        "description": "Claude organization UUID. Required for 'code' and 'chat' sources. Falls back to CLAUDE_ORG_ID env var."
+      },
+      "cookie": {
+        "type": ["string", "null"],
+        "default": null,
+        "description": "Browser cookie header for claude.ai auth. Required for 'code' and 'chat' sources. Falls back to CLAUDE_SESSION_COOKIE env var."
+      },
+      "status_filter": {
+        "type": ["string", "null"],
+        "enum": ["active", "idle", "archived", null],
+        "default": null,
+        "description": "Filter web Code sessions by status. Only applies to 'code' source."
+      },
+      "session_id": {
+        "type": ["string", "null"],
+        "default": null,
+        "description": "Filter to a specific session by ID (partial match supported)."
+      },
+      "export": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, export full conversations as JSON files."
+      },
+      "export_dir": {
+        "type": ["string", "null"],
+        "default": null,
+        "description": "Directory to write exported conversations. Defaults to ~/.claude/exports/."
+      }
+    }
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "sessions": {
+        "type": "array",
+        "description": "List of discovered sessions.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string", "enum": ["cli", "web", "chat"] },
+            "session_id": { "type": "string" },
+            "title": { "type": ["string", "null"] },
+            "status": { "type": "string" },
+            "model": { "type": ["string", "null"] },
+            "branch": { "type": ["string", "null"] },
+            "repo": { "type": ["string", "null"] },
+            "created_at": { "type": ["string", "null"] },
+            "updated_at": { "type": ["string", "null"] },
+            "message_count": { "type": ["integer", "null"] },
+            "size_mb": { "type": ["number", "null"] }
+          }
+        }
+      },
+      "summary": {
+        "type": "object",
+        "description": "Aggregate counts by source.",
+        "properties": {
+          "cli": { "type": "integer" },
+          "code": { "type": "integer" },
+          "chat": { "type": "integer" },
+          "total": { "type": "integer" }
+        }
+      },
+      "exported_files": {
+        "type": ["array", "null"],
+        "description": "Paths of exported JSON files (only when export=true).",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["sessions", "summary"]
+  },
+  "errors": [
+    { "code": "auth_required", "description": "org_id and cookie are required for 'code' or 'chat' sources but were not provided." },
+    { "code": "no_sessions_found", "description": "No sessions matched the given filters." }
+  ],
+  "side_effects": "Read-only. Reads local .jsonl files and makes HTTP GET requests to claude.ai APIs. Export mode writes JSON files to disk."
+}

@@ -1,35 +1,137 @@
-#!/usr/bin/env python3
-"""
-Unified Claude session survey — combines local CLI sessions, web Claude Code sessions,
-and regular claude.ai chat conversations.
+"""Core capability: survey and export Claude sessions across CLI, web Code, and chat."""
+from __future__ import annotations
 
-Web sessions and chat require a browser session cookie. To obtain one:
-  1. Open claude.ai in Chrome
-  2. Open DevTools > Application > Cookies
-  3. Copy the cookie header string
-  4. Pass via --cookie or CLAUDE_SESSION_COOKIE env var
-
-Alternatively, pass --local-only to skip web sessions.
-
-Output: JSON to stdout, human-readable to stderr.
-"""
-
-import argparse
+import glob
 import json
 import os
-import sys
-import glob
 import time
-from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
 
 CLAUDE_DIR = os.path.expanduser("~/.claude")
 PROJECTS_DIR = os.path.join(CLAUDE_DIR, "projects")
-
 DEFAULT_EXPORT_DIR = os.path.join(CLAUDE_DIR, "exports")
 
+# Headers required specifically for the /v1/sessions (Claude Code) API
+_CODE_SESSION_HEADERS = {
+    "anthropic-beta": "ccr-byoc-2025-07-29",
+    "anthropic-client-feature": "ccr",
+    "anthropic-client-platform": "web_claude_ai",
+    "anthropic-version": "2023-06-01",
+}
 
-def parse_cli_sessions():
-    """Parse all local CLI session .jsonl files."""
+
+class SessionSurveyError(Exception):
+    """Base error for session survey failures."""
+
+
+class AuthRequiredError(SessionSurveyError):
+    """Raised when web auth credentials are missing but needed."""
+
+
+# ── Entry point ──────────────────────────────────────────────────────
+
+
+def survey_sessions(
+    sources: Optional[List[str]] = None,
+    org_id: Optional[str] = None,
+    cookie: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    session_id: Optional[str] = None,
+    export: bool = False,
+    export_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Survey and optionally export Claude sessions.
+
+    Returns a dict with 'sessions', 'summary', and optionally 'exported_files'.
+    """
+    if sources is None:
+        sources = ["cli", "code", "chat"]
+
+    org_id = org_id or os.environ.get("CLAUDE_ORG_ID")
+    cookie = cookie or os.environ.get("CLAUDE_SESSION_COOKIE")
+    export_dir = export_dir or DEFAULT_EXPORT_DIR
+    has_web_auth = bool(org_id and cookie)
+
+    all_sessions: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+
+    if "cli" in sources:
+        all_sessions.extend(_parse_cli_sessions())
+
+    needs_web = "code" in sources or "chat" in sources
+    if needs_web and not has_web_auth:
+        skipped = [s for s in sources if s in ("code", "chat")]
+        warnings.append(
+            f"Skipped {', '.join(skipped)}: org_id and cookie required."
+        )
+    elif needs_web:
+        if "code" in sources:
+            web_sessions = _fetch_web_sessions(org_id, cookie)
+            if status_filter:
+                web_sessions = [s for s in web_sessions if s["status"] == status_filter]
+            all_sessions.extend(web_sessions)
+        if "chat" in sources:
+            all_sessions.extend(_fetch_chat_sessions(org_id, cookie))
+
+    if session_id:
+        all_sessions = [s for s in all_sessions if session_id in s["session_id"]]
+
+    summary = {
+        "cli": len([s for s in all_sessions if s["source"] == "cli"]),
+        "code": len([s for s in all_sessions if s["source"] == "web"]),
+        "chat": len([s for s in all_sessions if s["source"] == "chat"]),
+        "total": len(all_sessions),
+    }
+
+    result: Dict[str, Any] = {
+        "sessions": all_sessions,
+        "summary": summary,
+        "exported_files": None,
+    }
+    if warnings:
+        result["warnings"] = warnings
+
+    if export:
+        result["exported_files"] = _export_sessions(
+            all_sessions, export_dir, org_id=org_id, cookie_header=cookie,
+        )
+
+    return result
+
+
+# ── HTTP helpers ─────────────────────────────────────────────────────
+
+
+def _make_ssl_context():
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+def _make_web_request(url, org_id, cookie_header, ssl_ctx, extra_headers=None):
+    import urllib.request
+    headers = {
+        "content-type": "application/json",
+        "Cookie": cookie_header,
+        "User-Agent": "session-survey/1.0",
+    }
+    if org_id:
+        headers["x-organization-uuid"] = org_id
+    if extra_headers:
+        headers.update(extra_headers)
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as resp:
+        return json.loads(resp.read().decode())
+
+
+# ── CLI sessions ─────────────────────────────────────────────────────
+
+
+def _parse_cli_sessions() -> List[Dict[str, Any]]:
     sessions = []
     for project_dir in sorted(glob.glob(os.path.join(PROJECTS_DIR, "*"))):
         if not os.path.isdir(project_dir):
@@ -79,7 +181,7 @@ def parse_cli_sessions():
                 "session_id": session_id,
                 "project": project,
                 "title": title,
-                "status": "local",  # CLI sessions don't have active/idle
+                "status": "local",
                 "model": None,
                 "branch": branch,
                 "slug": slug,
@@ -94,17 +196,17 @@ def parse_cli_sessions():
     return sessions
 
 
-def fetch_web_sessions(org_id, cookie_header):
-    """Fetch web Claude Code sessions via /v1/sessions API."""
-    ssl_ctx = _make_ssl_context()
+# ── Web Claude Code sessions ─────────────────────────────────────────
 
+
+def _fetch_web_sessions(org_id, cookie_header) -> List[Dict[str, Any]]:
+    ssl_ctx = _make_ssl_context()
     try:
         data = _make_web_request(
             "https://claude.ai/v1/sessions", org_id, cookie_header, ssl_ctx,
             extra_headers=_CODE_SESSION_HEADERS,
         )
-    except Exception as e:
-        print(f"[web] Failed to fetch sessions: {e}", file=sys.stderr)
+    except Exception:
         return []
 
     sessions = []
@@ -134,108 +236,10 @@ def fetch_web_sessions(org_id, cookie_header):
     return sessions
 
 
-def _make_ssl_context():
-    """Create an SSL context, using certifi if available."""
-    import ssl
-    try:
-        import certifi
-        return ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        return ssl.create_default_context()
-
-
-def _make_web_request(url, org_id, cookie_header, ssl_ctx, extra_headers=None):
-    """Make an authenticated request to the claude.ai API."""
-    import urllib.request
-    headers = {
-        "content-type": "application/json",
-        "Cookie": cookie_header,
-        "User-Agent": "session-survey/1.0",
-    }
-    if org_id:
-        headers["x-organization-uuid"] = org_id
-    if extra_headers:
-        headers.update(extra_headers)
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as resp:
-        return json.loads(resp.read().decode())
-
-
-# Headers required specifically for the /v1/sessions (Claude Code) API
-_CODE_SESSION_HEADERS = {
-    "anthropic-beta": "ccr-byoc-2025-07-29",
-    "anthropic-client-feature": "ccr",
-    "anthropic-client-platform": "web_claude_ai",
-    "anthropic-version": "2023-06-01",
-}
-
-
-def fetch_chat_sessions(org_id, cookie_header):
-    """Fetch regular claude.ai chat conversations."""
-    ssl_ctx = _make_ssl_context()
-
-    try:
-        data = _make_web_request(
-            f"https://claude.ai/api/organizations/{org_id}/chat_conversations",
-            org_id, cookie_header, ssl_ctx,
-        )
-    except Exception as e:
-        print(f"[chat] Failed to fetch conversations: {e}", file=sys.stderr)
-        return []
-
-    if not isinstance(data, list):
-        print(f"[chat] Unexpected response format", file=sys.stderr)
-        return []
-
-    sessions = []
-    for c in data:
-        sessions.append({
-            "source": "chat",
-            "session_id": c["uuid"],
-            "project": None,
-            "title": c.get("name"),
-            "status": "starred" if c.get("is_starred") else "chat",
-            "model": c.get("model"),
-            "branch": None,
-            "slug": None,
-            "cwd": None,
-            "repo": None,
-            "created_at": c.get("created_at"),
-            "updated_at": c.get("updated_at"),
-            "message_count": None,
-            "size_mb": None,
-            "version": None,
-        })
-    return sessions
-
-
-def fetch_chat_conversation(conv_id, org_id, cookie_header, ssl_ctx):
-    """Fetch full chat conversation messages."""
-    url = f"https://claude.ai/api/organizations/{org_id}/chat_conversations/{conv_id}"
-    data = _make_web_request(url, org_id, cookie_header, ssl_ctx)
-    messages = []
-    for m in data.get("chat_messages", []):
-        role = "user" if m.get("sender") == "human" else "assistant"
-        messages.append({
-            "role": role,
-            "text": m.get("text", ""),
-            "timestamp": m.get("created_at"),
-            "id": m.get("uuid"),
-        })
-    return {
-        "messages": messages,
-        "summary": data.get("summary"),
-        "model": data.get("model"),
-        "settings": data.get("settings"),
-    }
-
-
-def fetch_session_events(session_id, org_id, cookie_header, ssl_ctx):
-    """Fetch all events for a web session, handling pagination."""
+def _fetch_session_events(session_id, org_id, cookie_header, ssl_ctx) -> List[Dict]:
     all_events = []
     cursor = None
     page = 0
-
     while True:
         url = f"https://claude.ai/v1/sessions/{session_id}/events?limit=1000"
         if cursor:
@@ -243,24 +247,19 @@ def fetch_session_events(session_id, org_id, cookie_header, ssl_ctx):
         try:
             data = _make_web_request(url, org_id, cookie_header, ssl_ctx,
                                      extra_headers=_CODE_SESSION_HEADERS)
-        except Exception as e:
-            print(f"  [events] Failed page {page}: {e}", file=sys.stderr)
+        except Exception:
             break
-
         events = data.get("data", [])
         all_events.extend(events)
         page += 1
-
         if not data.get("has_more") or not events:
             break
         cursor = events[-1].get("id")
-        time.sleep(0.2)  # gentle rate limiting
-
+        time.sleep(0.2)
     return all_events
 
 
-def parse_conversation_events(events):
-    """Parse raw events into a structured conversation with metadata."""
+def _parse_conversation_events(events) -> Dict[str, Any]:
     messages = []
     result_summary = None
 
@@ -339,8 +338,67 @@ def parse_conversation_events(events):
     return {"messages": messages, "result": result_summary}
 
 
-def export_cli_session(jsonl_path):
-    """Read a CLI session .jsonl and normalize into conversation format."""
+# ── Chat conversations ───────────────────────────────────────────────
+
+
+def _fetch_chat_sessions(org_id, cookie_header) -> List[Dict[str, Any]]:
+    ssl_ctx = _make_ssl_context()
+    try:
+        data = _make_web_request(
+            f"https://claude.ai/api/organizations/{org_id}/chat_conversations",
+            org_id, cookie_header, ssl_ctx,
+        )
+    except Exception:
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    sessions = []
+    for c in data:
+        sessions.append({
+            "source": "chat",
+            "session_id": c["uuid"],
+            "project": None,
+            "title": c.get("name"),
+            "status": "starred" if c.get("is_starred") else "chat",
+            "model": c.get("model"),
+            "branch": None,
+            "slug": None,
+            "cwd": None,
+            "repo": None,
+            "created_at": c.get("created_at"),
+            "updated_at": c.get("updated_at"),
+            "message_count": None,
+            "size_mb": None,
+            "version": None,
+        })
+    return sessions
+
+
+def _fetch_chat_conversation(conv_id, org_id, cookie_header, ssl_ctx) -> Dict[str, Any]:
+    url = f"https://claude.ai/api/organizations/{org_id}/chat_conversations/{conv_id}"
+    data = _make_web_request(url, org_id, cookie_header, ssl_ctx)
+    messages = []
+    for m in data.get("chat_messages", []):
+        role = "user" if m.get("sender") == "human" else "assistant"
+        messages.append({
+            "role": role,
+            "text": m.get("text", ""),
+            "timestamp": m.get("created_at"),
+            "id": m.get("uuid"),
+        })
+    return {
+        "messages": messages,
+        "summary": data.get("summary"),
+        "model": data.get("model"),
+    }
+
+
+# ── CLI session export ───────────────────────────────────────────────
+
+
+def _export_cli_session(jsonl_path) -> Dict[str, Any]:
     messages = []
     metadata = {}
 
@@ -419,14 +477,10 @@ def export_cli_session(jsonl_path):
     return {"messages": messages, "metadata": metadata}
 
 
-def _truncate(s, max_len):
-    if len(s) <= max_len:
-        return s
-    return s[:max_len] + "..."
+# ── Export orchestration ─────────────────────────────────────────────
 
 
-def export_sessions(sessions, export_dir, org_id=None, cookie_header=None):
-    """Export full conversations for the given sessions."""
+def _export_sessions(sessions, export_dir, org_id=None, cookie_header=None) -> List[str]:
     ssl_ctx = None
     if org_id and cookie_header:
         ssl_ctx = _make_ssl_context()
@@ -438,21 +492,15 @@ def export_sessions(sessions, export_dir, org_id=None, cookie_header=None):
         sid = s["session_id"]
         source = s["source"]
         safe_title = (s.get("title") or "untitled").split("\n")[0][:50]
-        # Sanitize for filename
         safe_title = "".join(c if c.isalnum() or c in " -_" else "_" for c in safe_title).strip()
 
         if source == "web":
             if not org_id or not cookie_header or not ssl_ctx:
-                print(f"  [skip] {sid} — web session but no auth provided", file=sys.stderr)
                 continue
-
-            print(f"  [web] Exporting: {safe_title} ({sid[:20]}...)", file=sys.stderr)
-            events = fetch_session_events(sid, org_id, cookie_header, ssl_ctx)
+            events = _fetch_session_events(sid, org_id, cookie_header, ssl_ctx)
             if not events:
-                print(f"    No events found", file=sys.stderr)
                 continue
-
-            conversation = parse_conversation_events(events)
+            conversation = _parse_conversation_events(events)
             export_data = {
                 "source": "web",
                 "session_id": sid,
@@ -470,19 +518,13 @@ def export_sessions(sessions, export_dir, org_id=None, cookie_header=None):
 
         elif source == "chat":
             if not org_id or not cookie_header or not ssl_ctx:
-                print(f"  [skip] {sid} — chat session but no auth provided", file=sys.stderr)
                 continue
-
-            print(f"  [chat] Exporting: {safe_title} ({sid[:20]}...)", file=sys.stderr)
             try:
-                parsed = fetch_chat_conversation(sid, org_id, cookie_header, ssl_ctx)
-            except Exception as e:
-                print(f"    Failed: {e}", file=sys.stderr)
+                parsed = _fetch_chat_conversation(sid, org_id, cookie_header, ssl_ctx)
+            except Exception:
                 continue
             if not parsed["messages"]:
-                print(f"    No messages found", file=sys.stderr)
                 continue
-
             export_data = {
                 "source": "chat",
                 "session_id": sid,
@@ -494,17 +536,14 @@ def export_sessions(sessions, export_dir, org_id=None, cookie_header=None):
                 "conversation": parsed["messages"],
                 "result_summary": None,
             }
-            time.sleep(0.2)  # gentle rate limiting
+            time.sleep(0.2)
 
         elif source == "cli":
             project = s.get("project", "unknown")
             jsonl_path = os.path.join(PROJECTS_DIR, project, f"{sid}.jsonl")
             if not os.path.exists(jsonl_path):
-                print(f"  [skip] {sid} — file not found", file=sys.stderr)
                 continue
-
-            print(f"  [cli] Exporting: {safe_title} ({sid[:20]}...)", file=sys.stderr)
-            parsed = export_cli_session(jsonl_path)
+            parsed = _export_cli_session(jsonl_path)
             export_data = {
                 "source": "cli",
                 "session_id": sid,
@@ -526,147 +565,15 @@ def export_sessions(sessions, export_dir, org_id=None, cookie_header=None):
         filepath = os.path.join(export_dir, filename)
         with open(filepath, "w") as f:
             json.dump(export_data, f, indent=2, default=str)
-
-        msg_count = len([m for m in export_data["conversation"] if m["role"] in ("user", "assistant")])
-        print(f"    -> {filepath} ({msg_count} messages)", file=sys.stderr)
         exported.append(filepath)
 
     return exported
 
 
-def print_report(all_sessions):
-    """Print a human-readable summary to stderr."""
-    cli = [s for s in all_sessions if s["source"] == "cli"]
-    web = [s for s in all_sessions if s["source"] == "web"]
-    chat = [s for s in all_sessions if s["source"] == "chat"]
-
-    print("\n=== Claude Session Survey ===\n", file=sys.stderr)
-
-    if chat:
-        print(f"Chat conversations: {len(chat)} total", file=sys.stderr)
-        print("-" * 60, file=sys.stderr)
-        for s in sorted(chat, key=lambda x: x.get("updated_at") or "", reverse=True):
-            title = (s["title"] or "Untitled")[:60]
-            updated = (s["updated_at"] or "")[:10]
-            model = s.get("model") or ""
-            print(f"  💬 {title:<60s} {updated}  {model}", file=sys.stderr)
-        print(file=sys.stderr)
-
-    if web:
-        web_active = [s for s in web if s["status"] == "active"]
-        web_idle = [s for s in web if s["status"] == "idle"]
-        web_archived = [s for s in web if s["status"] == "archived"]
-
-        print(f"Web Claude Code sessions: {len(web)} total "
-              f"({len(web_active)} active, {len(web_idle)} idle, {len(web_archived)} archived)",
-              file=sys.stderr)
-        print("-" * 60, file=sys.stderr)
-        for s in sorted(web, key=lambda x: x.get("updated_at") or "", reverse=True):
-            status_icon = {"active": "🟢", "idle": "🟡", "archived": "⚫"}.get(s["status"], "❓")
-            title = (s["title"] or "Untitled")[:60]
-            updated = (s["updated_at"] or "")[:10]
-            print(f"  {status_icon} [{s['status']:8s}] {title:<60s} {updated}  {s.get('model', '')}", file=sys.stderr)
-        print(file=sys.stderr)
-
-    if cli:
-        # Group by project
-        projects = {}
-        for s in cli:
-            projects.setdefault(s["project"], []).append(s)
-
-        print(f"Local CLI sessions: {len(cli)} total across {len(projects)} projects", file=sys.stderr)
-        print("-" * 60, file=sys.stderr)
-        for project, sess in sorted(projects.items()):
-            print(f"\n  📁 {project}", file=sys.stderr)
-            for s in sorted(sess, key=lambda x: x.get("updated_at") or "", reverse=True):
-                title = (s["title"] or "Untitled")[:55]
-                # Clean up multiline titles
-                title = title.split("\n")[0]
-                updated = (s["updated_at"] or "")[:10]
-                msgs = s.get("message_count", 0)
-                size = s.get("size_mb", 0)
-                branch = s.get("branch", "")
-                print(f"     {title:<55s} {updated}  {msgs:>4d} msgs  {size:>5.1f}MB  {branch}", file=sys.stderr)
-        print(file=sys.stderr)
-
-    print(f"\nTotal: {len(all_sessions)} sessions ({len(chat)} chat, {len(web)} code, {len(cli)} CLI)\n", file=sys.stderr)
+# ── Utility ──────────────────────────────────────────────────────────
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Survey all Claude sessions (CLI + web)")
-    parser.add_argument("--org-id", default=os.environ.get("CLAUDE_ORG_ID"),
-                        help="Claude organization UUID (or set CLAUDE_ORG_ID)")
-    parser.add_argument("--cookie", default=os.environ.get("CLAUDE_SESSION_COOKIE"),
-                        help="Browser cookie header for claude.ai auth (or set CLAUDE_SESSION_COOKIE)")
-    parser.add_argument("--local-only", action="store_true",
-                        help="Only show local CLI sessions, skip web")
-    parser.add_argument("--web-only", action="store_true",
-                        help="Only show web Claude Code sessions, skip local CLI and chat")
-    parser.add_argument("--chat-only", action="store_true",
-                        help="Only show claude.ai chat conversations, skip CLI and Code")
-    parser.add_argument("--json-only", action="store_true",
-                        help="Only output JSON to stdout, no human-readable report")
-    parser.add_argument("--status", choices=["active", "idle", "archived", "all"], default="all",
-                        help="Filter web Code sessions by status")
-    # Export flags
-    parser.add_argument("--export", action="store_true",
-                        help="Export full conversations for all matched sessions")
-    parser.add_argument("--export-dir", default=DEFAULT_EXPORT_DIR,
-                        help=f"Directory to write exported conversations (default: {DEFAULT_EXPORT_DIR})")
-    parser.add_argument("--session-id",
-                        help="Export a specific session by ID (partial match supported)")
-    args = parser.parse_args()
-
-    all_sessions = []
-    has_web_auth = args.org_id and args.cookie
-    # Determine which sources to include
-    include_cli = not args.web_only and not args.chat_only
-    include_code = not args.local_only and not args.chat_only
-    include_chat = not args.local_only and not args.web_only
-
-    if include_cli:
-        cli_sessions = parse_cli_sessions()
-        all_sessions.extend(cli_sessions)
-
-    if include_code or include_chat:
-        if not has_web_auth:
-            skipped = []
-            if include_code:
-                skipped.append("Code sessions")
-            if include_chat:
-                skipped.append("chat conversations")
-            print(f"[web] Skipping {' and '.join(skipped)}: --org-id and --cookie required (or set env vars). "
-                  "Use --local-only to suppress this message.", file=sys.stderr)
-        else:
-            if include_code:
-                web_sessions = fetch_web_sessions(args.org_id, args.cookie)
-                if args.status != "all":
-                    web_sessions = [s for s in web_sessions if s["status"] == args.status]
-                all_sessions.extend(web_sessions)
-            if include_chat:
-                chat_sessions = fetch_chat_sessions(args.org_id, args.cookie)
-                all_sessions.extend(chat_sessions)
-
-    # Filter by session ID if specified
-    if args.session_id:
-        all_sessions = [s for s in all_sessions if args.session_id in s["session_id"]]
-        if not all_sessions:
-            print(f"No sessions matching '{args.session_id}'", file=sys.stderr)
-            sys.exit(1)
-
-    if args.export:
-        print(f"\n=== Exporting {len(all_sessions)} session(s) to {args.export_dir} ===\n", file=sys.stderr)
-        exported = export_sessions(
-            all_sessions, args.export_dir,
-            org_id=args.org_id, cookie_header=args.cookie,
-        )
-        print(f"\nExported {len(exported)} conversation(s)\n", file=sys.stderr)
-    else:
-        if not args.json_only:
-            print_report(all_sessions)
-        json.dump(all_sessions, sys.stdout, indent=2, default=str)
-        print(file=sys.stdout)
-
-
-if __name__ == "__main__":
-    main()
+def _truncate(s, max_len):
+    if len(s) <= max_len:
+        return s
+    return s[:max_len] + "..."
