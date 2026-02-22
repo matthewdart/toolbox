@@ -48,6 +48,7 @@ jobs:
       - name: Generate docker-compose.override.yml from template
         env:
           CF_TUNNEL_TOKEN: ${{ secrets.CF_TUNNEL_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           HTTP_BEARER_TOKEN: ${{ secrets.HTTP_BEARER_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           RM_CONNECT_TOKEN: ${{ secrets.RM_CONNECT_TOKEN }}
