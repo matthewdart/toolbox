@@ -54,6 +54,51 @@ Not acceptable: assume based on general knowledge, push to main, discover you we
 
 ---
 
+## Docker and CI/CD Preflight
+
+Before pushing any Dockerfile, docker-compose.yml, override template, or GitHub Actions workflow, complete the applicable checks below. These exist because every item has caused a real deployment failure.
+
+### GitHub Actions prerequisites
+
+- **Repo workflow permissions**: `gh api repos/{owner}/{repo}/actions/permissions/workflow` — confirm `default_workflow_permissions` includes `write` if the workflow pushes to GHCR. If not, add an explicit `permissions:` block to the calling workflow.
+- **Repo secrets**: `gh secret list -R {owner}/{repo}` — confirm every secret referenced in the workflow and override template is configured. Do not push a deploy workflow that references `TS_AUTHKEY`, `CF_TUNNEL_TOKEN`, or `HTTP_BEARER_TOKEN` to a repo that has zero secrets.
+- **Dockerfile path**: if the build context is not `.`, explicitly set the `dockerfile` input on the reusable workflow. The shared `build-arm-image.yml` resolves `dockerfile` relative to the **repo root**, not the build context.
+
+### Override template and envsubst
+
+The `deploy-stack.yml` workflow runs `envsubst` on the override template. This replaces **all** `${VAR}` patterns — including variables you intended to come from `.env` on the VM.
+
+- Every `${VAR}` in the override template **must** exist in `deploy-stack.yml`'s `env:` block. If the variable is not listed there, `envsubst` silently replaces it with an empty string.
+- Variables that should come from the VM's `.env` file must **not** appear in the override template. Put them in `docker-compose.yml` using bare names (e.g., `- GITHUB_CLIENT_ID`) so Compose reads them from `.env` at runtime.
+- When adding a new secret to an override template, check whether `deploy-stack.yml` already lists it. If not, the shared workflow must be updated first.
+
+### Dockerfile runtime
+
+- **Non-root user**: if the Dockerfile creates a non-root user or if `docker-compose.yml` overrides the UID with `user:`, verify:
+  - The home directory exists (`useradd -m` or explicit `mkdir`)
+  - `HOME` is explicitly set in `environment:` if the UID has no `/etc/passwd` entry
+  - `PATH` includes venv or tool directories (e.g., `ENV PATH="/app/.venv/bin:$PATH"`)
+- **System dependencies**: if a Python/Node package depends on a system binary (Inkscape, curl, ffmpeg, docker CLI), verify the binary is installed in the image. Do not assume pip/npm packages are self-contained.
+- **Path resolution**: code that uses `Path(__file__).parent` or similar will resolve to the **site-packages** directory inside a container, not the application root. Verify all path resolution logic against the actual container filesystem layout.
+- **Resource limits**: only set `memory:` and `cpus:` limits based on measured usage. If you do not know the peak memory of the workload, do not guess — omit the limit or ask the user.
+
+### Docker Compose consistency
+
+- **network_mode**: if a service uses `network_mode: service:<other>`, the referenced service must exist and must not have a profile that prevents it from starting.
+- **profiles**: if a service has a `profiles:` key, it will **not** start with `docker compose up -d` unless the profile is explicitly activated via `--profile` or `COMPOSE_PROFILES`. Verify the deploy workflow activates required profiles, or remove the profile from services that must always run.
+- **`docker compose -f`**: the explicit `-f` flag disables automatic discovery of `docker-compose.override.yml`. Always use `cd /opt/<service> && docker compose up -d` instead.
+- **depends_on**: if service A depends on service B, service B must not be profile-gated unless service A is also gated behind the same profile.
+
+### Cross-service consistency
+
+When a change affects the contract between services (labels, env var names, ports), verify both sides:
+
+- Docker labels read by a discovery system must use the exact key names the consumer expects
+- Port numbers must match between the app's `HTTP_PORT`, the compose `ports:` mapping, the cloudflared tunnel routing, and the workflow's `health_port` input
+- Container names must match any references in other compose files, tunnel configs, or monitoring
+
+---
+
 ## Scope Discipline
 
 - After fixing a bug, do not start a related refactor without asking.
@@ -99,3 +144,7 @@ When a test fails due to your changes, investigate whether the new behaviour is 
 ## Ambiguity
 
 If you are not sure what the user is asking, **ask for clarification**. Do not interpret an ambiguous statement, implement against your interpretation, and discover you were wrong after the work is done. The cost of one clarifying question is always less than the cost of a reversal.
+
+### Questions are not directives
+
+When a user asks "why is X configured this way?" or "what does Y do?", they are asking for an explanation — not requesting that you change X or remove Y. Answer the question. Do not start implementing changes unless the user explicitly asks for a change after hearing the explanation.
