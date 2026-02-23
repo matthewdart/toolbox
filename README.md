@@ -1,111 +1,65 @@
-# toolbox
+# handbook
 
-A personal toolbox of capabilities — deterministic, contract-driven plugins used by humans and agents to perform repeatable workflows.
+This repository is the canonical, vendorable source for governance artifacts related to AI-assisted systems, audits, and maintainer acceptance.
 
----
+## What this is
+- Stable, conservative reference material
+- Markdown and plain text only
+- Intended to be vendored into other repositories via `git subtree`
+- Includes templates for per-repo agent instruction files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md)
 
-## Purpose
+## Governance hierarchy
 
-Repeated workflows involving GitHub, infrastructure, and automation should not be re-implemented in prompts. Instead, they are encoded as capabilities with stable contracts, versioned, and callable from multiple surfaces (MCP, CLI, OpenAI tools).
+This repository defines a four-layer governance system, ordered by force level:
 
----
+1. **[Manifesto](MANIFESTO.md)** — values, optimisation targets, and selection pressures (why)
+2. **[Tech Constitution](TECH_CONSTITUTION.md)** — minimum validity constraints (what must not break)
+3. **[Reference Architecture](REFERENCE_ARCHITECTURE.md)** — ecosystem defaults and expected fit (what it should look like)
+4. **[Playbook](PLAYBOOK.md)** — implementation, audits, and agent behaviour (how)
 
-## Repository Structure
+## Index
+
+### Governance documents
+- [Manifesto](MANIFESTO.md)
+- [Tech Constitution](TECH_CONSTITUTION.md)
+- [Reference Architecture](REFERENCE_ARCHITECTURE.md)
+- [Playbook](PLAYBOOK.md)
+
+### Audit prompts
+- [AI Slop Audit](audits/AI_SLOP_AUDIT.md)
+- [Agent Capability & Exposure Audit](audits/AGENT_CAPABILITY_AUDIT.md)
+- [Archi Maintainer Acceptance Audit](audits/ARCHI_MAINTAINER_ACCEPTANCE_AUDIT.md)
+- [Governance Consistency & Drift Audit](audits/GOVERNANCE_CONSISTENCY_AUDIT.md)
+- [AGENTS.md Conformance & Drift Audit](audits/AGENTS_CONFORMANCE_AUDIT.md)
+- [Codebase Architecture Audit](audits/CODEBASE_ARCHITECTURE_AUDIT.md)
+
+### Reports
+- [Governance Consistency Audit — 2026-01-27](reports/REPORT-2026-01-27T222916Z.md)
+- [Critical Review — 2026-02-12](reports/REPORT-2026-02-12-CRITICAL-REVIEW.md)
+- [Critical Review v2 (Post-Remediation) — 2026-02-12](reports/REPORT-2026-02-12-CRITICAL-REVIEW-v2.md)
+
+### Templates
+- [Templates README](templates/README.md) — how to use templates for new repos
+- [AGENTS.md template](templates/AGENTS.md.template)
+- [CLAUDE.md template](templates/CLAUDE.md.template)
+- [CONTRIBUTING.md template](templates/CONTRIBUTING.md.template)
+- [Code reviewer agent](templates/.claude/agents/code-reviewer.md.template)
+
+### Preferences
+- [Owner Preferences](OWNER_PREFERENCES.md) — cross-repo conventions, patterns, and tool choices
+
+### Infrastructure
+- [Infrastructure Map](INFRASTRUCTURE_MAP.md) — end-to-end architecture map of all deployed components, data flows, and interactions
+- [Observability Conventions](OBSERVABILITY.md) — structured logging, health endpoints, request tracing, deployment verification
+
+### Other
+- [Superseded artifacts](superseded/)
+- [Version](VERSION)
+
+## Consumption (git subtree)
+
+This repository is designed to be consumed via git subtree into other repositories and treated as read-only for downstream consumers:
 
 ```
-toolbox/
-├── capabilities/          All executable code (auto-discovered plugins)
-├── core/                  Registry and CLI dispatch
-├── adapters/              MCP server, OpenAI tool generation
-├── .claude/skills/        Instructional skills (agent guidance, no code)
-├── tests/                 Surface consistency and capability tests
-├── docs/                  Operational guides and patterns
-├── gpts/                  GPT configuration files
-├── vendor/handbook/       Vendored governance handbook
-├── .github/workflows/     Reusable GitHub Actions workflows
-├── .mcp.json              MCP server config (auto-started by Claude Code)
-├── AGENTS.md              Agent operating contract
-├── CLAUDE.md              Claude Code quick-reference
-└── README.md
+git subtree add --prefix vendor/handbook https://github.com/matthewdart/handbook.git main --squash
 ```
-
----
-
-## Capabilities
-
-Each capability is a self-contained plugin under `capabilities/` with a JSON Schema contract, implementation, and metadata. The registry auto-discovers all plugins at import time.
-
-Agents discover capabilities via the MCP server (configured in `.mcp.json`). The MCP server auto-starts when opening this repo in Claude Code.
-
-### Usage
-
-```bash
-# Via CLI dispatch
-python -m core.dispatch --capability text.normalize_markdown --input-json '{"text":"hello  world"}'
-
-# Regenerate OpenAI adapter files from contracts
-python -m adapters.openai.toolgen
-
-# Run tests
-pytest tests/
-```
-
----
-
-## Reusable GitHub Actions Workflows
-
-### build-arm-image.yml
-
-Build a Docker image for `linux/arm64` via QEMU cross-compilation and push to GHCR.
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `image_name` | yes | — | Image name (pushed as `ghcr.io/matthewdart/<image_name>`) |
-| `dockerfile` | no | `Dockerfile` | Path to Dockerfile |
-| `context` | no | `.` | Build context |
-| `platforms` | no | `linux/arm64` | Target platform(s) |
-
-```yaml
-jobs:
-  build:
-    uses: matthewdart/toolbox/.github/workflows/build-arm-image.yml@main
-    with:
-      image_name: my-service
-    secrets: inherit
-```
-
-### deploy-stack.yml
-
-Deploy a Docker Compose stack to the Oracle Cloud VM via Tailscale SSH.
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `service_name` | yes | — | Service name — deploys to `/opt/<service_name>/` |
-| `compose_file` | no | `docker-compose.yml` | Path to compose file in the calling repo |
-| `vm_hostname` | no | `matthews-oracle-instance` | Tailscale hostname of the VM |
-| `vm_user` | no | `ubuntu` | SSH user |
-
-```yaml
-jobs:
-  deploy:
-    uses: matthewdart/toolbox/.github/workflows/deploy-stack.yml@main
-    with:
-      service_name: my-service
-    secrets: inherit
-```
-
----
-
-## Design Principles
-
-1. **No sudo** — capabilities run as an unprivileged user
-2. **User-space only** — no systemd, no package installs, no global filesystem mutation
-3. **Deterministic** — same input produces the same output shape
-4. **Fail fast** — missing prerequisites error clearly
-5. **Explicit contracts** — inputs via schema, outputs validated
-
----
-
-## License
-
-Personal use. Adapt as needed.

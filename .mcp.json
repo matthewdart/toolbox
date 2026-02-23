@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "toolbox": {
-      "command": "python",
-      "args": ["-m", "adapters.mcp.server"],
-      "cwd": "."
-    }
-  }
-}
