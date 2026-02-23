@@ -107,7 +107,7 @@
         "type": "array",
         "description": "Offer objects. When raw=false, items match the normalized schema.",
         "items": {
-          "oneOf": [
+          "anyOf": [
             {
               "type": "object",
               "description": "Normalized offer schema.",
