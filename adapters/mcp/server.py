@@ -55,8 +55,11 @@ def _register_capability(capability_id: str, contract: Dict[str, Any]) -> None:
             return dispatch(cap_id, kwargs)
         return handler
 
+    # MCP clients validate tool names against ^[a-zA-Z0-9_-]{1,64}$ —
+    # dots from our <domain>.<verb_object> convention must be replaced.
+    tool_name = capability_id.replace(".", "_")
     tool = FunctionTool(
-        name=capability_id,
+        name=tool_name,
         description=description,
         fn=make_handler(capability_id),
         parameters=input_schema,

@@ -24,7 +24,8 @@ class FastMCPAdapterTests(unittest.TestCase):
                 tools = await client.list_tools()
                 tool_names = {t.name for t in tools}
                 for cap_id in CONTRACTS:
-                    self.assertIn(cap_id, tool_names, f"Missing tool for {cap_id}")
+                    tool_name = cap_id.replace(".", "_")
+                    self.assertIn(tool_name, tool_names, f"Missing tool for {cap_id}")
                 self.assertIn("toolbox_list_capabilities", tool_names)
 
         self._run(check())
@@ -37,7 +38,8 @@ class FastMCPAdapterTests(unittest.TestCase):
                 tools = await client.list_tools()
                 tool_map = {t.name: t for t in tools}
                 for cap_id, contract in CONTRACTS.items():
-                    tool = tool_map[cap_id]
+                    tool_name = cap_id.replace(".", "_")
+                    tool = tool_map[tool_name]
                     expected_props = set(
                         contract.get("input_schema", {}).get("properties", {}).keys()
                     )
@@ -70,7 +72,7 @@ class FastMCPAdapterTests(unittest.TestCase):
         async def check():
             async with Client(mcp) as client:
                 result = await client.call_tool(
-                    "text.normalize_markdown", {"text": "hello"}
+                    "text_normalize_markdown", {"text": "hello"}
                 )
                 self.assertTrue(result.data["ok"])
                 self.assertIn("text", result.data["result"])
