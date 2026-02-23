@@ -1,0 +1,43 @@
+# Toolbox MCP Server — self-contained deployment
+#
+# The gateway discovers this container via Docker labels.
+# SSH keys are mounted read-only for infra capabilities.
+# Secrets are injected via .env on the VM (never committed).
+
+services:
+  toolbox:
+    image: ghcr.io/matthewdart/toolbox:latest
+    container_name: toolbox
+    restart: unless-stopped
+    user: "1001"
+    stdin_open: true  # required for docker exec -i (stdio transport)
+    network_mode: host
+    environment:
+      - TOOLBOX_TRANSPORT=stdio
+      # Secrets sourced from .env on the VM
+      - GH_TOKEN
+      - OPENAI_API_KEY
+    volumes:
+      # SSH keys for infra capabilities (read-only)
+      - ~/.ssh:/home/toolbox/.ssh:ro
+      # Docker socket for push-ghcr capability
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Persistent data directory for media downloads etc.
+      - ./data:/app/data
+    labels:
+      mcp.enabled: "true"
+      mcp.namespace: "toolbox"
+      mcp.transport: "stdio"
+      mcp.lifecycle: "persistent"
+      mcp.stdio.container: "toolbox"
+      mcp.stdio.command: "python"
+      mcp.stdio.args: '["-m", "adapters.mcp.server"]'
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

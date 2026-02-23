@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+.mcp.json
+__pycache__
+*.pyc
+tests/
+docs/
+vendor/
+data/
+*.md
+!requirements.txt
