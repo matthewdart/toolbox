@@ -463,19 +463,21 @@ This section makes **explicit the current concrete tools** that realise the ecos
 
 **Default Tools**
 
-* OpenAI (ChatGPT, Codex-class models) — reasoning, analysis, and bounded execution
+* Claude (Anthropic) — **primary**: interactive reasoning, dialogue, agentic coding, MCP tool use
+* OpenAI (GPT-4o-mini, Codex) — **active secondary**: OCR vision tasks in remarkable-pipeline, Codex automation in GitHub Actions CI
 
-**Why It Fits**
+**Why They Fit**
 
-* Strong performance on text, code, and structured reasoning
-* Supports both conversational exploration and headless execution modes
-* Compatible with contract-first, artifact-producing workflows
+* Claude: deep agentic coding capability, native MCP integration, strong multi-turn dialogue for interactive workflows
+* OpenAI: GPT-4o-mini provides cost-effective OCR and vision extraction in the remarkable-pipeline; Codex is used in CI automation where GitHub Actions integration is already established
+* Both providers operate over explicit inputs and produce inspectable, file-based outputs — compatible with the ecosystem's artifact-first model
 
 **Constraints**
 
 * AI systems are not systems of record
 * No authoritative state may live exclusively in model memory or chat history
 * Outputs must be externalised as files, diffs, or artefacts
+* This is a **dual-provider reality**, not a migration path — OpenAI remains active for specific use cases where it outperforms alternatives
 
 **Exit Path**
 
@@ -774,6 +776,8 @@ HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
 * Standard env vars eliminate per-service naming conventions
 * Health endpoints enable Docker healthchecks, Cloudflare origin monitoring, and local debugging
 * Port registry prevents host-network collisions
+
+For the full set of observability conventions — startup logging, request logging, error output, shutdown behaviour, and deployment verification — see [OBSERVABILITY_STANDARD.md](OBSERVABILITY_STANDARD.md).
 
 **Deviation Guidance**
 

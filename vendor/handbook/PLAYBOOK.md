@@ -216,6 +216,14 @@ Unlike the other audit prompts, this one is designed for both diagnosis and reme
 
 See [audits/WORKSPACE_HYGIENE_AUDIT.md](audits/WORKSPACE_HYGIENE_AUDIT.md) for the full prompt.
 
+### 5.6 Observability Audit
+
+Purpose: audit one or more service repositories against the [Observability Standard](OBSERVABILITY_STANDARD.md), verifying that health endpoints, startup logging, error output, request logging, and deployment verification conventions are implemented.
+
+Produces a per-rule scorecard and prioritised gap analysis.
+
+See [audits/OBSERVABILITY_AUDIT.md](audits/OBSERVABILITY_AUDIT.md) for the full prompt.
+
 ---
 
 ## 6. Playbook Exploitation Model (How Agents Use This)

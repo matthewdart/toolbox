@@ -108,7 +108,7 @@ Trace infrastructure implications.
 
 **Fleet-health registry:**
 - Does the change affect the service's port, hostname, or smoke test tool?
-- Does `capabilities/infra_check_fleet/implementation.py` SERVICES list need updating?
+- Does `capabilities/fleet_health/implementation.py` SERVICES list need updating?
 
 **Deployment:**
 - Does `docker-compose.yml` need changes?
