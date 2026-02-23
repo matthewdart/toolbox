@@ -1,0 +1,7 @@
+# CI/CD override template — secrets injected via envsubst
+# Deployed as docker-compose.override.yml (never committed with values)
+services:
+  toolbox:
+    environment:
+      - GH_TOKEN=${GH_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}

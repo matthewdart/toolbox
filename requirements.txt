@@ -1,5 +1,8 @@
+# MCP server
+fastmcp>=3.0.0
+
+# Capability runtime deps
 openai
-mcp
 jsonschema
 python-dotenv
 PyYAML
