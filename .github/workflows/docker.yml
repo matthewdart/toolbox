@@ -1,0 +1,24 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    uses: matthewdart/toolbox/.github/workflows/build-arm-image.yml@main
+    with:
+      image_name: toolbox
+    secrets: inherit
+
+  deploy:
+    needs: build
+    uses: matthewdart/toolbox/.github/workflows/deploy-stack.yml@main
+    with:
+      service_name: toolbox
+    secrets: inherit
