@@ -1,0 +1,86 @@
+{
+  "name": "media.render_svg_to_png",
+  "description": "Render an SVG file to a PNG image using Inkscape CLI, with optional size and background controls.",
+  "version": "v1",
+  "annotations": {
+    "title": "Render SVG to PNG",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "svg_path": {
+        "type": "string",
+        "description": "Path to the input SVG file."
+      },
+      "output_path": {
+        "type": ["string", "null"],
+        "description": "Path for the output PNG file. Defaults to the input path with a .png extension.",
+        "default": null
+      },
+      "width": {
+        "type": ["integer", "null"],
+        "description": "Export width in pixels. Height scales proportionally if omitted.",
+        "default": null,
+        "minimum": 1
+      },
+      "height": {
+        "type": ["integer", "null"],
+        "description": "Export height in pixels. Width scales proportionally if omitted.",
+        "default": null,
+        "minimum": 1
+      },
+      "dpi": {
+        "type": ["integer", "null"],
+        "description": "Export DPI. Defaults to Inkscape's default of 96.",
+        "default": null,
+        "minimum": 1,
+        "maximum": 2400
+      },
+      "background": {
+        "type": ["string", "null"],
+        "description": "Background colour as hex (e.g. '#FFFFFF'). Default is transparent.",
+        "default": null
+      }
+    },
+    "required": ["svg_path"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output_path": {
+        "type": "string",
+        "description": "Resolved absolute path to the written PNG file."
+      },
+      "width_px": {
+        "type": "integer",
+        "description": "Width of the rendered PNG in pixels."
+      },
+      "height_px": {
+        "type": "integer",
+        "description": "Height of the rendered PNG in pixels."
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Size of the output PNG file in bytes."
+      },
+      "inkscape_stderr": {
+        "type": "string",
+        "description": "Inkscape stderr output (warnings, info, or empty)."
+      }
+    },
+    "required": ["output_path", "width_px", "height_px", "file_size_bytes", "inkscape_stderr"]
+  },
+  "errors": [
+    { "code": "validation_error", "description": "Input did not match schema." },
+    { "code": "output_validation_error", "description": "Output did not match schema." },
+    { "code": "capability_error", "description": "Execution failed (Inkscape missing, file not found, render error, etc.)." }
+  ],
+  "side_effects": "Executes Inkscape CLI; writes a PNG file to disk. Overwrites the output file if it already exists.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}

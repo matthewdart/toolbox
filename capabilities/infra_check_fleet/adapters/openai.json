@@ -1,6 +1,6 @@
 {
   "function": {
-    "description": "Verify health of all MCP services across local (SSH to VM) and tunnel (Cloudflare HTTPS) surfaces.",
+    "description": "Check health of all deployed MCP services via SSH (local) and Cloudflare tunnel (HTTPS). Returns per-service status and an aggregate health summary.",
     "name": "infra.check_fleet",
     "parameters": {
       "additionalProperties": false,

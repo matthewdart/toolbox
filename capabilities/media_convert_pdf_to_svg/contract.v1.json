@@ -1,0 +1,64 @@
+{
+  "name": "media.convert_pdf_to_svg",
+  "description": "Convert a page from a PDF file to SVG using Inkscape CLI.",
+  "version": "v1",
+  "annotations": {
+    "title": "Convert PDF to SVG",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pdf_path": {
+        "type": "string",
+        "description": "Path to the input PDF file."
+      },
+      "output_path": {
+        "type": ["string", "null"],
+        "description": "Path for the output SVG file. Defaults to the input path with a .svg extension.",
+        "default": null
+      },
+      "page": {
+        "type": ["integer", "null"],
+        "description": "1-based page number to convert. Defaults to 1 (first page).",
+        "default": null,
+        "minimum": 1
+      }
+    },
+    "required": ["pdf_path"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output_path": {
+        "type": "string",
+        "description": "Resolved absolute path to the written SVG file."
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Size of the output SVG file in bytes."
+      },
+      "page": {
+        "type": "integer",
+        "description": "The 1-based page number that was converted."
+      },
+      "inkscape_stderr": {
+        "type": "string",
+        "description": "Inkscape stderr output (warnings, info, or empty)."
+      }
+    },
+    "required": ["output_path", "file_size_bytes", "page", "inkscape_stderr"]
+  },
+  "errors": [
+    { "code": "validation_error", "description": "Input did not match schema." },
+    { "code": "output_validation_error", "description": "Output did not match schema." },
+    { "code": "capability_error", "description": "Execution failed (Inkscape missing, file not found, conversion error, etc.)." }
+  ],
+  "side_effects": "Executes Inkscape CLI; writes an SVG file to disk. Overwrites the output file if it already exists.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}

@@ -1,0 +1,64 @@
+{
+  "function": {
+    "description": "Render an SVG file to a PNG image using Inkscape CLI, with optional size and background controls.",
+    "name": "media.render_svg_to_png",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "default": null,
+          "description": "Background colour as hex (e.g. '#FFFFFF'). Default is transparent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dpi": {
+          "default": null,
+          "description": "Export DPI. Defaults to Inkscape's default of 96.",
+          "maximum": 2400,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "height": {
+          "default": null,
+          "description": "Export height in pixels. Width scales proportionally if omitted.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "output_path": {
+          "default": null,
+          "description": "Path for the output PNG file. Defaults to the input path with a .png extension.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "svg_path": {
+          "description": "Path to the input SVG file.",
+          "type": "string"
+        },
+        "width": {
+          "default": null,
+          "description": "Export width in pixels. Height scales proportionally if omitted.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "svg_path"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

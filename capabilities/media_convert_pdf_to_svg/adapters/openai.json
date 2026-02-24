@@ -1,0 +1,37 @@
+{
+  "function": {
+    "description": "Convert a page from a PDF file to SVG using Inkscape CLI.",
+    "name": "media.convert_pdf_to_svg",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "output_path": {
+          "default": null,
+          "description": "Path for the output SVG file. Defaults to the input path with a .svg extension.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "default": null,
+          "description": "1-based page number to convert. Defaults to 1 (first page).",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "pdf_path": {
+          "description": "Path to the input PDF file.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pdf_path"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}
