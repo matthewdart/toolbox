@@ -2,6 +2,11 @@
   "name": "cloudflare.setup_mcp_portal",
   "description": "Manage Cloudflare MCP Portal servers and portals via the Cloudflare API. Supports listing, adding, updating, syncing, and removing servers, managing portal-to-server assignments, and verifying end-to-end portal health.",
   "version": "v1",
+  "annotations": {
+    "title": "Manage Cloudflare MCP Portal",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

@@ -2,6 +2,11 @@
   "name": "infra.deploy_compose",
   "description": "Deploy Docker Compose services on a remote host via SSH.",
   "version": "v1",
+  "annotations": {
+    "title": "Deploy Docker Compose Services",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

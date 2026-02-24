@@ -2,6 +2,10 @@
   "name": "github.create_gist",
   "description": "Create a secret GitHub Gist from files or inline content.",
   "version": "v1",
+  "annotations": {
+    "title": "Create GitHub Gist",
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

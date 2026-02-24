@@ -2,6 +2,11 @@
   "name": "github.push_ghcr",
   "description": "Build a Docker image for a specified platform and push it to GitHub Container Registry (GHCR).",
   "version": "v1",
+  "annotations": {
+    "title": "Build & Push Docker Image to GHCR",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

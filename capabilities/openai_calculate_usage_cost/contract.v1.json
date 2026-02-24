@@ -2,6 +2,11 @@
   "name": "openai.calculate_usage_cost",
   "description": "Summarize OpenAI usage from a JSONL log and optionally calculate estimated costs using user-supplied pricing.",
   "version": "v1",
+  "annotations": {
+    "title": "Calculate OpenAI API Costs",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

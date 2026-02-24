@@ -2,6 +2,12 @@
   "name": "claude.survey_sessions",
   "description": "Survey and export Claude sessions across local CLI, web Claude Code, and claude.ai chat conversations.",
   "version": "v1",
+  "annotations": {
+    "title": "Survey Claude Sessions",
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

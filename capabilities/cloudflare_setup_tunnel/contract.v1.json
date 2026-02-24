@@ -2,6 +2,11 @@
   "name": "cloudflare.setup_tunnel",
   "description": "Generate Cloudflare Tunnel sidecar configuration for a Docker Compose service. Produces a cloudflared compose service block, .env template, and dashboard setup instructions.",
   "version": "v1",
+  "annotations": {
+    "title": "Generate Tunnel Config",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

@@ -16,6 +16,7 @@ from typing import Any, Dict
 
 from fastmcp import FastMCP
 from fastmcp.tools import FunctionTool
+from mcp.types import ToolAnnotations
 
 from core.dispatch import dispatch
 from core.registry import CONTRACTS
@@ -49,6 +50,14 @@ def _register_capability(capability_id: str, contract: Dict[str, Any]) -> None:
     """
     description = contract.get("description", "")
     input_schema = _strip_schema(contract.get("input_schema", {}))
+    ann_raw = contract.get("annotations", {})
+    title = ann_raw.get("title")
+    annotations = ToolAnnotations(
+        readOnlyHint=ann_raw.get("readOnlyHint"),
+        destructiveHint=ann_raw.get("destructiveHint"),
+        idempotentHint=ann_raw.get("idempotentHint"),
+        openWorldHint=ann_raw.get("openWorldHint"),
+    ) if ann_raw else None
 
     def make_handler(cap_id: str):
         def handler(**kwargs: Any) -> dict:
@@ -63,6 +72,8 @@ def _register_capability(capability_id: str, contract: Dict[str, Any]) -> None:
         description=description,
         fn=make_handler(capability_id),
         parameters=input_schema,
+        title=title,
+        annotations=annotations,
     )
     mcp.add_tool(tool)
 
@@ -77,7 +88,10 @@ for _cap_id, _contract in sorted(CONTRACTS.items()):
 
 
 # --- Meta-tool: list capabilities ---
-@mcp.tool
+@mcp.tool(
+    title="List Available Capabilities",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def toolbox_list_capabilities() -> dict:
     """List all capability IDs available in this server."""
     return {"ok": True, "result": sorted(CONTRACTS.keys())}

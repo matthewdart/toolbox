@@ -2,6 +2,10 @@
   "name": "media.download_video",
   "description": "Download a video from a URL to a local file using yt-dlp (supports many platforms) and return resolved file paths + metadata.",
   "version": "v1",
+  "annotations": {
+    "title": "Download Video from URL",
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

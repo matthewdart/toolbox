@@ -2,6 +2,12 @@
   "name": "infra.bootstrap_vm",
   "description": "Preflight check for VM deployment readiness. Connects via SSH and verifies Docker, Docker Compose, architecture, GHCR authentication, Tailscale, and per-service compose directory layout.",
   "version": "v1",
+  "annotations": {
+    "title": "Preflight VM Readiness Check",
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

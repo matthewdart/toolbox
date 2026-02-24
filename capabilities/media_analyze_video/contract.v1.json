@@ -2,6 +2,10 @@
   "name": "media.analyze_video",
   "description": "Transcribe a local video file and extract key slide images using OpenAI APIs.",
   "version": "v1",
+  "annotations": {
+    "title": "Transcribe & Extract Slides from Video",
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

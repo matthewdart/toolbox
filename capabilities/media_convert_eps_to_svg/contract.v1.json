@@ -2,6 +2,11 @@
   "name": "media.convert_eps_to_svg",
   "description": "Convert an EPS (Encapsulated PostScript) file to SVG using Inkscape CLI.",
   "version": "v1",
+  "annotations": {
+    "title": "Convert EPS to SVG",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

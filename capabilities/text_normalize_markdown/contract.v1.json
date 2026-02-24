@@ -2,6 +2,11 @@
   "name": "text.normalize_markdown",
   "description": "Normalize Markdown content with optional whitespace cleanup.",
   "version": "v1",
+  "annotations": {
+    "title": "Normalize Markdown",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

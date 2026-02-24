@@ -2,6 +2,10 @@
   "name": "browser.export_cookies",
   "description": "Export browser cookies for a domain to a Netscape cookies.txt file using yt-dlp cookie extraction. Useful for login-gated downloads.",
   "version": "v1",
+  "annotations": {
+    "title": "Export Browser Cookies",
+    "idempotentHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

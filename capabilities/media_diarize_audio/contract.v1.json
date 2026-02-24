@@ -2,6 +2,10 @@
   "name": "media.diarize_audio",
   "description": "Perform speaker diarisation on an audio or video file using pyannote-audio, returning timestamped speaker turns. Optionally merge with a Whisper transcript to produce speaker-attributed segments.",
   "version": "v1",
+  "annotations": {
+    "title": "Diarize Audio by Speaker",
+    "openWorldHint": true
+  },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
