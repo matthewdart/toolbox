@@ -1,6 +1,6 @@
 # Toolbox MCP Server — fat container with all runtime dependencies
 #
-# Includes: ssh, curl, ffmpeg, gh CLI, docker CLI, yt-dlp
+# Includes: ssh, curl, ffmpeg, inkscape, gh CLI, docker CLI, yt-dlp
 # Python deps: fastmcp, openai, jsonschema, pyyaml, etc.
 #
 # Build:  docker build -t ghcr.io/matthewdart/toolbox:latest .
@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     curl \
     ffmpeg \
+    inkscape \
     git \
     ca-certificates \
     gnupg \

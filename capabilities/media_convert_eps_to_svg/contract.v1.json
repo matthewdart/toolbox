@@ -1,0 +1,49 @@
+{
+  "name": "media.convert_eps_to_svg",
+  "description": "Convert an EPS (Encapsulated PostScript) file to SVG using Inkscape CLI.",
+  "version": "v1",
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "eps_path": {
+        "type": "string",
+        "description": "Path to the input EPS file."
+      },
+      "output_path": {
+        "type": ["string", "null"],
+        "description": "Path for the output SVG file. Defaults to the input path with a .svg extension.",
+        "default": null
+      }
+    },
+    "required": ["eps_path"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output_path": {
+        "type": "string",
+        "description": "Resolved absolute path to the written SVG file."
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Size of the output SVG file in bytes."
+      },
+      "inkscape_stderr": {
+        "type": "string",
+        "description": "Inkscape stderr output (warnings, info, or empty)."
+      }
+    },
+    "required": ["output_path", "file_size_bytes", "inkscape_stderr"]
+  },
+  "errors": [
+    { "code": "validation_error", "description": "Input did not match schema." },
+    { "code": "output_validation_error", "description": "Output did not match schema." },
+    { "code": "capability_error", "description": "Execution failed (Inkscape missing, file not found, conversion error, etc.)." }
+  ],
+  "side_effects": "Executes Inkscape CLI; writes an SVG file to disk. Overwrites the output file if it already exists.",
+  "version_notes": "v1 initial implementation (Prototype Mode)."
+}

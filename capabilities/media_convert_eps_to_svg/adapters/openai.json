@@ -1,0 +1,28 @@
+{
+  "function": {
+    "description": "Convert an EPS (Encapsulated PostScript) file to SVG using Inkscape CLI.",
+    "name": "media.convert_eps_to_svg",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "eps_path": {
+          "description": "Path to the input EPS file.",
+          "type": "string"
+        },
+        "output_path": {
+          "default": null,
+          "description": "Path for the output SVG file. Defaults to the input path with a .svg extension.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "eps_path"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}
