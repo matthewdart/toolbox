@@ -1,0 +1,81 @@
+{
+  "function": {
+    "description": "Survey and export Claude sessions across local CLI, web Claude Code, and claude.ai chat conversations.",
+    "name": "session.survey_sessions",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "cookie": {
+          "default": null,
+          "description": "Browser cookie header for claude.ai auth. Required for 'code' and 'chat' sources. Falls back to CLAUDE_SESSION_COOKIE env var.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "export": {
+          "default": false,
+          "description": "If true, export full conversations as JSON files.",
+          "type": "boolean"
+        },
+        "export_dir": {
+          "default": null,
+          "description": "Directory to write exported conversations. Defaults to ~/.claude/exports/.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "org_id": {
+          "default": null,
+          "description": "Claude organization UUID. Required for 'code' and 'chat' sources. Falls back to CLAUDE_ORG_ID env var.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_id": {
+          "default": null,
+          "description": "Filter to a specific session by ID (partial match supported).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "default": [
+            "cli",
+            "code",
+            "chat"
+          ],
+          "description": "Which session sources to include: 'cli' (local .jsonl), 'code' (web Claude Code), 'chat' (claude.ai conversations).",
+          "items": {
+            "enum": [
+              "cli",
+              "code",
+              "chat"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status_filter": {
+          "default": null,
+          "description": "Filter web Code sessions by status. Only applies to 'code' source.",
+          "enum": [
+            "active",
+            "idle",
+            "archived",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "function"
+}
