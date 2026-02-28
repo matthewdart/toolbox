@@ -1,0 +1,18 @@
+{
+  "function": {
+    "description": "Remove stopped/orphaned managed containers. Finds containers with toolbox.managed=true label in exited/dead state.",
+    "name": "infra.cleanup_instances",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "description": "List without removing.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

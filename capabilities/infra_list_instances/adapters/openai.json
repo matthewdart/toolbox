@@ -1,0 +1,21 @@
+{
+  "function": {
+    "description": "List running template instances managed by toolbox. Groups containers by Compose project name.",
+    "name": "infra.list_instances",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "template": {
+          "default": null,
+          "description": "Filter by template type (e.g. 'browser', 'claude-mcp-server'). Null for all.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

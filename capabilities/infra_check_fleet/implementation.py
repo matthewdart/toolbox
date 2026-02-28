@@ -7,6 +7,8 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from capabilities._infra_common import run_cmd, run_shell
+
 
 class FleetHealthError(Exception):
     """Base error for fleet health failures."""
@@ -49,36 +51,12 @@ SERVICES = [
 ]
 
 
-# ── SSH helpers ───────────────────────────────────────────────────────
+# ── Local checks ─────────────────────────────────────────────────────
 
-def _run_ssh(host: str, remote_cmd: str, timeout: int = 15) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", "-o", f"ConnectTimeout={timeout}", host, remote_cmd],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-        timeout=timeout + 10,
-    )
-
-
-def _run_local_cmd(cmd: List[str], timeout: int = 15) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-        timeout=timeout,
-    )
-
-
-# ── Local checks (SSH to VM) ─────────────────────────────────────────
-
-def _check_container(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
+def _check_container(svc: Dict[str, Any]) -> Dict[str, Any]:
     """Check container status via docker compose ps."""
     try:
-        proc = _run_ssh(host, f"cd {svc['compose_dir']} && docker compose ps --format json")
+        proc = run_shell(f"cd {svc['compose_dir']} && docker compose ps --format json", timeout=15)
         if proc.returncode != 0:
             return {"running": False, "error": proc.stderr.strip()[:200]}
         containers = []
@@ -99,16 +77,16 @@ def _check_container(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
                 break
         return {"running": running, "health": health, "container_count": len(containers)}
     except subprocess.TimeoutExpired:
-        return {"running": False, "error": "ssh timeout"}
+        return {"running": False, "error": "timeout"}
     except Exception as exc:
         return {"running": False, "error": str(exc)[:200]}
 
 
-def _check_health_endpoint(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
-    """Probe localhost:<port>/health via SSH."""
+def _check_health_endpoint(svc: Dict[str, Any]) -> Dict[str, Any]:
+    """Probe localhost:<port>/health."""
     port = svc["port"]
     try:
-        proc = _run_ssh(host, f"curl -fsS --max-time 10 http://localhost:{port}/health")
+        proc = run_cmd(["curl", "-fsS", "--max-time", "10", f"http://localhost:{port}/health"], timeout=15)
         if proc.returncode != 0:
             return {"status": "unreachable", "http_status": None, "error": proc.stderr.strip()[:200]}
         try:
@@ -176,8 +154,8 @@ fi
 """
 
 
-def _check_smoke_test(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
-    """Send a real MCP tools/call request via SSH.
+def _check_smoke_test(svc: Dict[str, Any]) -> Dict[str, Any]:
+    """Send a real MCP tools/call request.
 
     For MCP SDK Streamable HTTP services: performs full session handshake
     (initialize → initialized → tools/call) and parses SSE response.
@@ -191,7 +169,7 @@ def _check_smoke_test(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
     if transport == "streamable-http":
         script = _mcp_session_curl(port, tool_name, tool_args)
         try:
-            proc = _run_ssh(host, f"bash -c {_shell_quote(script)}", timeout=40)
+            proc = run_shell(script, timeout=50)
             output = proc.stdout.strip()
             if proc.returncode != 0 or not output:
                 return {"tool": tool_name, "ok": False, "error": (proc.stderr or "empty response").strip()[:200]}
@@ -215,16 +193,15 @@ def _check_smoke_test(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
             "method": "tools/call",
             "params": {"name": tool_name, "arguments": tool_args},
         })
-        escaped = payload.replace("'", "'\\''")
-        curl_cmd = (
-            f"curl -fsS --max-time 15 "
-            f"-H 'Content-Type: application/json' "
-            f"-X POST "
-            f"-d '{escaped}' "
-            f"http://localhost:{port}/mcp"
-        )
         try:
-            proc = _run_ssh(host, curl_cmd, timeout=25)
+            proc = run_cmd(
+                ["curl", "-fsS", "--max-time", "15",
+                 "-H", "Content-Type: application/json",
+                 "-X", "POST",
+                 "-d", payload,
+                 f"http://localhost:{port}/mcp"],
+                timeout=25,
+            )
             if proc.returncode != 0:
                 return {"tool": tool_name, "ok": False, "error": proc.stderr.strip()[:200]}
             ok = "result" in proc.stdout and "error" not in proc.stdout[:100]
@@ -236,26 +213,21 @@ def _check_smoke_test(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
             return {"tool": tool_name, "ok": False, "error": str(exc)[:200]}
 
 
-def _shell_quote(s: str) -> str:
-    """Quote a string for safe embedding in a shell command."""
-    return "'" + s.replace("'", "'\\''") + "'"
-
-
-def _check_local(host: str, svc: Dict[str, Any]) -> Dict[str, Any]:
+def _check_local(svc: Dict[str, Any]) -> Dict[str, Any]:
     """Run all local checks for a service (short-circuits on critical failure)."""
     result: Dict[str, Any] = {}
 
-    container = _check_container(host, svc)
+    container = _check_container(svc)
     result["container"] = container
     if not container.get("running"):
         return result
 
-    health = _check_health_endpoint(host, svc)
+    health = _check_health_endpoint(svc)
     result["health_endpoint"] = health
     if health.get("status") == "error":
         return result
 
-    smoke = _check_smoke_test(host, svc)
+    smoke = _check_smoke_test(svc)
     result["smoke_test"] = smoke
 
     return result
@@ -267,7 +239,7 @@ def _check_tunnel_health(svc: Dict[str, Any]) -> Dict[str, Any]:
     """Probe health endpoint via Cloudflare tunnel."""
     hostname = svc["hostname"]
     try:
-        proc = _run_local_cmd(
+        proc = run_cmd(
             ["curl", "-fsS", "--max-time", "10", f"https://{hostname}/health"],
             timeout=15,
         )
@@ -292,7 +264,7 @@ def _check_tunnel_mcp(svc: Dict[str, Any]) -> Dict[str, Any]:
     """
     hostname = svc["hostname"]
     try:
-        proc = _run_local_cmd(
+        proc = run_cmd(
             [
                 "curl", "-sS", "--max-time", "10",
                 "-X", "POST",
@@ -369,7 +341,6 @@ def _derive_fleet_status(service_results: List[Dict[str, Any]]) -> str:
 def check_fleet(
     *,
     scope: str = "full",
-    host: str = "ubuntu@matthews-oracle-instance",
     services: Optional[List[str]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
@@ -377,17 +348,16 @@ def check_fleet(
 
     Args:
         scope: 'local', 'tunnel', or 'full' (both).
-        host: SSH host target for local checks.
         services: Specific service names to check. If None, checks all.
 
     Returns:
         Fleet health report with per-service status and check details.
 
     Raises:
-        DependencyError: If ssh or curl not found in PATH.
+        DependencyError: If docker or curl not found in PATH.
     """
-    if scope in ("local", "full") and not shutil.which("ssh"):
-        raise DependencyError("ssh not found in PATH")
+    if scope in ("local", "full") and not shutil.which("docker"):
+        raise DependencyError("docker not found in PATH")
     if not shutil.which("curl"):
         raise DependencyError("curl not found in PATH")
 
@@ -404,7 +374,7 @@ def check_fleet(
         tunnel_result = None
 
         if scope in ("local", "full"):
-            local_result = _check_local(host, svc)
+            local_result = _check_local(svc)
             entry["local"] = local_result
 
         if scope in ("tunnel", "full"):

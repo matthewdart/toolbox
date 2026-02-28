@@ -4,8 +4,7 @@
   "version": "v1",
   "annotations": {
     "title": "Spawn Template Instance",
-    "destructiveHint": true,
-    "openWorldHint": true
+    "destructiveHint": true
   },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19,11 +18,6 @@
       "name": {
         "type": "string",
         "description": "Instance name. Combined with template for project name."
-      },
-      "host": {
-        "type": "string",
-        "description": "'local' (default) or SSH host alias.",
-        "default": "local"
       },
       "env": {
         "type": ["object", "null"],
@@ -44,7 +38,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "template": { "type": "string" },
       "name": { "type": "string" },
       "project_name": { "type": "string" },
@@ -52,13 +45,12 @@
       "exit_code": { "type": "integer" },
       "hint": { "type": "string" }
     },
-    "required": ["host", "template", "name", "project_name", "action"]
+    "required": ["template", "name", "project_name", "action"]
   },
   "errors": [
     { "code": "dependency_error", "description": "Required binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
     { "code": "compose_error", "description": "docker compose up failed." }
   ],
-  "side_effects": "Creates Docker containers from a Compose template on the target host.",
+  "side_effects": "Creates Docker containers from a Compose template locally.",
   "version_notes": "v1 initial implementation."
 }

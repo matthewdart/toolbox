@@ -1,0 +1,46 @@
+{
+  "function": {
+    "description": "Deploy a static stack locally. Resolves stack name to /opt/{stack} and runs docker compose pull && up -d.",
+    "name": "infra.deploy_stack",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "base_dir": {
+          "default": "/opt",
+          "description": "Base directory on the host.",
+          "type": "string"
+        },
+        "dry_run": {
+          "default": false,
+          "description": "Preview command without executing.",
+          "type": "boolean"
+        },
+        "pull_only": {
+          "default": false,
+          "description": "Only pull images, don't start services.",
+          "type": "boolean"
+        },
+        "services": {
+          "default": null,
+          "description": "Specific services to deploy. If null or empty, all services are targeted.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "stack": {
+          "description": "Repo/stack name. Resolves to /opt/{stack} on the host.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stack"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

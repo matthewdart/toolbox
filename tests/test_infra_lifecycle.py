@@ -34,7 +34,6 @@ class InputValidationTests(unittest.TestCase):
 
     def test_deploy_stack_rejects_unsafe_stack_name(self):
         result = dispatch("infra.deploy_stack", {
-            "host": "test-host",
             "stack": "foo && echo pwned",
         })
         self.assertFalse(result["ok"])
@@ -42,7 +41,6 @@ class InputValidationTests(unittest.TestCase):
 
     def test_destroy_stack_rejects_unsafe_stack_name(self):
         result = dispatch("infra.destroy_stack", {
-            "host": "test-host",
             "stack": "foo;bar",
         })
         self.assertFalse(result["ok"])
@@ -68,14 +66,13 @@ class InputValidationTests(unittest.TestCase):
             "template": "claude-mcp-server",
             "name": "my-repo.v2",
         })
-        # Should fail with docker/ssh not found, not validation
+        # Should fail with docker not found, not validation
         self.assertFalse(result["ok"])
         self.assertNotIn("Invalid", result["error"]["message"])
 
     def test_deploy_stack_dry_run(self):
         """dry_run returns the command without executing."""
         result = dispatch("infra.deploy_stack", {
-            "host": "test-host",
             "stack": "my-service",
             "dry_run": True,
         })
@@ -84,41 +81,39 @@ class InputValidationTests(unittest.TestCase):
         self.assertEqual(inner["action"], "dry_run")
         self.assertEqual(inner["stack"], "my-service")
         self.assertEqual(inner["compose_dir"], "/opt/my-service")
-        self.assertIn("ssh_command", inner)
+        self.assertIn("command", inner)
 
 
 class ShellCommandTests(unittest.TestCase):
     """Verify shell commands are constructed safely."""
 
-    def test_spawn_instance_env_quoting(self):
-        """Env values with special characters should be shell-quoted."""
+    def test_spawn_instance_env_passed_to_run_cmd(self):
+        """Env vars (including special characters) are passed to run_cmd."""
         from capabilities.infra_spawn_instance.implementation import spawn_instance
-        import shlex
 
-        # Mock _run_remote to capture the command
         with patch(
-            "capabilities.infra_spawn_instance.implementation._run_remote"
-        ) as mock_run:
+            "capabilities.infra_spawn_instance.implementation.run_cmd"
+        ) as mock_run, patch(
+            "capabilities.infra_spawn_instance.implementation.shutil.which",
+            return_value="/usr/bin/docker",
+        ):
             mock_run.return_value = MagicMock(
                 returncode=0, stdout="", stderr=""
             )
             spawn_instance(
                 template="browser",
                 name="test",
-                host="test-host",
                 env={"REPO": "https://github.com/foo/bar's repo"},
             )
             call_args = mock_run.call_args
-            remote_cmd = call_args[0][1]  # second positional arg
-            # The value with quotes should be properly escaped
-            self.assertIn("REPO=", remote_cmd)
-            # Should NOT contain unescaped single quotes that break shell
-            # shlex.quote wraps in single quotes and escapes internal quotes
-            self.assertNotIn("bar's repo\"", remote_cmd)
+            env_kwarg = call_args[1]["env"]
+            # NAME is always set, plus caller-provided vars
+            self.assertEqual(env_kwarg["NAME"], "test")
+            self.assertEqual(env_kwarg["REPO"], "https://github.com/foo/bar's repo")
 
 
 class DiscoverStacksOutputTests(unittest.TestCase):
-    """Test discover_stacks SSH script output parsing."""
+    """Test discover_stacks shell script output parsing."""
 
     def test_parse_stack_output(self):
         from capabilities.infra_discover_stacks.implementation import discover_stacks
@@ -129,12 +124,12 @@ class DiscoverStacksOutputTests(unittest.TestCase):
         )
 
         with patch(
-            "capabilities.infra_discover_stacks.implementation._run_ssh"
-        ) as mock_ssh:
-            mock_ssh.return_value = MagicMock(
+            "capabilities.infra_discover_stacks.implementation.run_shell"
+        ) as mock_shell:
+            mock_shell.return_value = MagicMock(
                 returncode=0, stdout=sample_output, stderr=""
             )
-            result = discover_stacks(host="test-host")
+            result = discover_stacks()
 
         self.assertEqual(result["stack_count"], 2)
         self.assertEqual(result["stacks"][0]["name"], "health-ledger")
@@ -165,12 +160,12 @@ class DiscoverTemplatesOutputTests(unittest.TestCase):
         )
 
         with patch(
-            "capabilities.infra_discover_templates.implementation._run_remote"
-        ) as mock_ssh:
-            mock_ssh.return_value = MagicMock(
+            "capabilities.infra_discover_templates.implementation.run_shell"
+        ) as mock_shell:
+            mock_shell.return_value = MagicMock(
                 returncode=0, stdout=sample_output, stderr=""
             )
-            result = discover_templates(host="test-host")
+            result = discover_templates()
 
         self.assertEqual(result["template_count"], 2)
         self.assertEqual(result["templates"][0]["name"], "browser")

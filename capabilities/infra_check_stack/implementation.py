@@ -1,10 +1,11 @@
-"""Core capability: check Docker Compose service status on a remote host via SSH."""
+"""Core capability: check Docker Compose service status locally."""
 from __future__ import annotations
 
 import json
 import shutil
-import subprocess
 from typing import Any, Dict, List, Optional
+
+from capabilities._infra_common import run_shell
 
 
 class StackStatusError(Exception):
@@ -13,21 +14,6 @@ class StackStatusError(Exception):
 
 class DependencyError(StackStatusError):
     """Raised when required external dependencies are missing."""
-
-
-class SSHError(StackStatusError):
-    """Raised when the SSH connection or remote command fails."""
-
-
-def _run_ssh(host: str, remote_cmd: str) -> subprocess.CompletedProcess:
-    """Execute a command on the remote host via SSH."""
-    return subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, remote_cmd],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
 
 
 def _parse_compose_ps(raw_output: str) -> List[Dict[str, Any]]:
@@ -73,40 +59,35 @@ def _normalize_service(svc: Dict[str, Any]) -> Dict[str, Any]:
 
 def check_stack(
     *,
-    host: str,
     compose_dir: str,
     services: Optional[List[str]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """Check Docker Compose service status on a remote host via SSH.
+    """Check Docker Compose service status locally.
 
     Args:
-        host: SSH host target (e.g. user@hostname or an SSH config alias).
-        compose_dir: Absolute path to the Docker Compose project directory
-            on the remote host.
+        compose_dir: Absolute path to the Docker Compose project directory.
         services: Optional list of service names to query. If None or empty,
             all services are returned.
 
     Returns:
-        A dict containing host, compose_dir, service_count, and services list.
-        On remote command failure, returns host, compose_dir, error, and exit_code.
+        A dict containing compose_dir, service_count, and services list.
+        On command failure, returns compose_dir, error, and exit_code.
 
     Raises:
-        DependencyError: If ssh is not found in PATH.
-        SSHError: If the SSH connection or remote command fails.
+        DependencyError: If docker is not found in PATH.
     """
-    if not shutil.which("ssh"):
-        raise DependencyError("ssh not found in PATH")
+    if not shutil.which("docker"):
+        raise DependencyError("docker not found in PATH")
 
     svc_args = " ".join(services) if services else ""
-    remote_cmd = f"cd {compose_dir} && docker compose ps --format json {svc_args}".strip()
+    shell_cmd = f"cd {compose_dir} && docker compose ps --format json {svc_args}".strip()
 
-    proc = _run_ssh(host, remote_cmd)
+    proc = run_shell(shell_cmd)
 
     if proc.returncode != 0:
-        error_msg = proc.stderr.strip() or "remote command failed"
+        error_msg = proc.stderr.strip() or "command failed"
         return {
-            "host": host,
             "compose_dir": compose_dir,
             "error": error_msg,
             "exit_code": proc.returncode,
@@ -116,7 +97,6 @@ def check_stack(
     normalized = [_normalize_service(s) for s in raw_services]
 
     return {
-        "host": host,
         "compose_dir": compose_dir,
         "service_count": len(normalized),
         "services": normalized,

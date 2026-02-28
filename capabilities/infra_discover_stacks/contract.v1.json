@@ -5,19 +5,13 @@
   "annotations": {
     "title": "Discover Stacks",
     "readOnlyHint": true,
-    "idempotentHint": true,
-    "openWorldHint": true
+    "idempotentHint": true
   },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "'local' (default) or SSH host alias.",
-        "default": "local"
-      },
       "base_dir": {
         "type": "string",
         "description": "Base directory to scan for stacks.",
@@ -31,9 +25,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string"
-      },
       "base_dir": {
         "type": "string"
       },
@@ -54,12 +45,11 @@
         }
       }
     },
-    "required": ["host", "base_dir", "stack_count", "stacks"]
+    "required": ["base_dir", "stack_count", "stacks"]
   },
   "errors": [
-    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command execution failed." }
+    { "code": "dependency_error", "description": "Required binary not found in PATH." }
   ],
-  "side_effects": "Scans directories and checks Docker Compose status (locally or via SSH).",
+  "side_effects": "Scans directories and checks Docker Compose status locally.",
   "version_notes": "v1 initial implementation."
 }

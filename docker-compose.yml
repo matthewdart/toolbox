@@ -5,6 +5,30 @@
 # Secrets are injected via .env on the VM (never committed).
 
 services:
+  tailscale:
+    image: tailscale/tailscale:v1.80.3
+    container_name: toolbox-tailscale
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_EXTRA_ARGS=--hostname=toolbox
+    volumes:
+      - ./data/tailscale:/var/lib/tailscale
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
   toolbox:
     image: ghcr.io/matthewdart/toolbox:latest
     container_name: toolbox
@@ -13,7 +37,9 @@ services:
     group_add:
       - "999"  # docker group GID on Oracle VM
     stdin_open: true  # required for docker exec -i (stdio transport)
-    network_mode: host
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
     environment:
       - TOOLBOX_TRANSPORT=stdio
       # Secrets sourced from .env on the VM

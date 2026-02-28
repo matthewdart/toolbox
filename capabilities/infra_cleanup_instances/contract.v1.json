@@ -11,11 +11,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "'local' (default) or SSH host alias.",
-        "default": "local"
-      },
       "dry_run": {
         "type": "boolean",
         "description": "List without removing.",
@@ -28,7 +23,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "action": { "type": "string" },
       "count": { "type": "integer" },
       "containers": {
@@ -45,13 +39,12 @@
       },
       "exit_code": { "type": "integer" }
     },
-    "required": ["host", "action", "count", "containers"]
+    "required": ["action", "count", "containers"]
   },
   "errors": [
     { "code": "dependency_error", "description": "Required binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
     { "code": "cleanup_instances_error", "description": "Local docker command failed." }
   ],
-  "side_effects": "Removes stopped Docker containers on the target host (unless dry_run).",
+  "side_effects": "Removes stopped Docker containers locally (unless dry_run).",
   "version_notes": "v1 initial implementation."
 }

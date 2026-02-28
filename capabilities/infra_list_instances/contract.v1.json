@@ -16,11 +16,6 @@
         "type": ["string", "null"],
         "description": "Filter by template type (e.g. 'browser', 'claude-mcp-server'). Null for all.",
         "default": null
-      },
-      "host": {
-        "type": "string",
-        "description": "'local' (default) or SSH host alias.",
-        "default": "local"
       }
     }
   },
@@ -29,7 +24,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "filter_template": { "type": ["string", "null"] },
       "instance_count": { "type": "integer" },
       "instances": {
@@ -55,13 +49,12 @@
         }
       }
     },
-    "required": ["host", "instance_count", "instances"]
+    "required": ["instance_count", "instances"]
   },
   "errors": [
     { "code": "dependency_error", "description": "Required binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
     { "code": "list_instances_error", "description": "Local docker command failed." }
   ],
-  "side_effects": "Queries Docker on the target host. No modifications.",
+  "side_effects": "Queries Docker locally.",
   "version_notes": "v1 initial implementation."
 }

@@ -1,0 +1,30 @@
+{
+  "function": {
+    "description": "Tear down a static stack locally. Resolves stack name to /opt/{stack} and runs docker compose down.",
+    "name": "infra.destroy_stack",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "base_dir": {
+          "default": "/opt",
+          "description": "Base directory on the host.",
+          "type": "string"
+        },
+        "stack": {
+          "description": "Repo/stack name. Resolves to /opt/{stack} on the host.",
+          "type": "string"
+        },
+        "volumes": {
+          "default": false,
+          "description": "Also remove named volumes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "stack"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

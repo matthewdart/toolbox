@@ -1,6 +1,9 @@
 # CI/CD override template — secrets injected via envsubst
 # Deployed as docker-compose.override.yml (never committed with values)
 services:
+  tailscale:
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
   toolbox:
     environment:
       - GH_TOKEN=${GH_TOKEN}

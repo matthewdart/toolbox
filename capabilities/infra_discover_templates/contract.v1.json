@@ -12,11 +12,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "'local' (default) or SSH host alias.",
-        "default": "local"
-      },
       "base_dir": {
         "type": "string",
         "description": "Base directory to scan for templates.",
@@ -29,7 +24,6 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "base_dir": { "type": "string" },
       "template_count": { "type": "integer" },
       "templates": {
@@ -47,13 +41,12 @@
         }
       }
     },
-    "required": ["host", "base_dir", "template_count", "templates"]
+    "required": ["base_dir", "template_count", "templates"]
   },
   "errors": [
-    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "dependency_error", "description": "Required binary not found in PATH." },
     { "code": "discover_templates_error", "description": "Local command failed." }
   ],
-  "side_effects": "Reads files on the target host. No modifications.",
+  "side_effects": "Reads files locally. No modifications.",
   "version_notes": "v1 initial implementation."
 }

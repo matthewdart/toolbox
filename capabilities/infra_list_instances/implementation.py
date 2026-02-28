@@ -4,10 +4,9 @@ from __future__ import annotations
 import json
 import re
 import shutil
-import subprocess
 from typing import Any, Dict, List, Optional
 
-SSH_BATCH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+from capabilities._infra_common import run_cmd
 
 
 class ListInstancesError(Exception):
@@ -16,25 +15,6 @@ class ListInstancesError(Exception):
 
 class DependencyError(ListInstancesError):
     """Raised when required external dependencies are missing."""
-
-
-class SSHError(ListInstancesError):
-    """Raised when the SSH connection or remote command fails."""
-
-
-def _run_local(cmd: list[str]) -> subprocess.CompletedProcess:
-    """Execute a command locally."""
-    return subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
-    )
-
-
-def _run_remote(host: str, remote_cmd: str) -> subprocess.CompletedProcess:
-    """Execute a command on a remote host over SSH."""
-    return subprocess.run(
-        ["ssh", *SSH_BATCH_OPTIONS, host, remote_cmd],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
-    )
 
 
 def _parse_containers(output: str) -> List[Dict[str, Any]]:
@@ -92,7 +72,6 @@ def _group_by_project(containers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def list_instances(
     *,
     template: Optional[str] = None,
-    host: str = "local",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """List running template instances managed by toolbox.
@@ -102,42 +81,29 @@ def list_instances(
 
     Raises:
         DependencyError: If required binaries are not found.
-        SSHError: If the SSH connection fails.
     """
-    if host != "local" and not shutil.which("ssh"):
-        raise DependencyError("ssh not found in PATH")
-
     # Validate template filter if provided
     _SAFE_NAME = re.compile(r"^[a-zA-Z0-9._-]+$")
     if template and not _SAFE_NAME.match(template):
         raise ListInstancesError(f"Invalid template filter: {template!r}")
 
-    if host == "local":
-        if not shutil.which("docker"):
-            raise DependencyError("docker not found in PATH")
-        cmd = ["docker", "ps", "--filter", "label=toolbox.managed=true"]
-        if template:
-            cmd.extend(["--filter", f"label=toolbox.type={template}"])
-        cmd.extend(["--format", "json", "--no-trunc"])
-        proc = _run_local(cmd)
-    else:
-        filter_args = '--filter "label=toolbox.managed=true"'
-        if template:
-            filter_args += f' --filter "label=toolbox.type={template}"'
-        docker_cmd = f"docker ps {filter_args} --format json --no-trunc"
-        proc = _run_remote(host, docker_cmd)
+    if not shutil.which("docker"):
+        raise DependencyError("docker not found in PATH")
+
+    cmd = ["docker", "ps", "--filter", "label=toolbox.managed=true"]
+    if template:
+        cmd.extend(["--filter", f"label=toolbox.type={template}"])
+    cmd.extend(["--format", "json", "--no-trunc"])
+    proc = run_cmd(cmd)
 
     if proc.returncode != 0:
         error_msg = proc.stderr.strip() or "docker ps failed"
-        if host != "local":
-            raise SSHError(error_msg)
         raise ListInstancesError(error_msg)
 
     containers = _parse_containers(proc.stdout)
     instances = _group_by_project(containers)
 
     return {
-        "host": host,
         "filter_template": template,
         "instance_count": len(instances),
         "instances": instances,

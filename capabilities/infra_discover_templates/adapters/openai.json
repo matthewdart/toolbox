@@ -1,0 +1,18 @@
+{
+  "function": {
+    "description": "Scan /opt for ephemeral Docker Compose templates. Returns available templates with their required environment variables.",
+    "name": "infra.discover_templates",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "base_dir": {
+          "default": "/opt",
+          "description": "Base directory to scan for templates.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

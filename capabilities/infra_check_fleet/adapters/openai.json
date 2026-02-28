@@ -1,18 +1,13 @@
 {
   "function": {
-    "description": "Check health of all deployed MCP services via SSH (local) and Cloudflare tunnel (HTTPS). Returns per-service status and an aggregate health summary.",
+    "description": "Check health of all deployed MCP services locally and via Cloudflare tunnel (HTTPS). Returns per-service status and an aggregate health summary.",
     "name": "infra.check_fleet",
     "parameters": {
       "additionalProperties": false,
       "properties": {
-        "host": {
-          "default": "ubuntu@matthews-oracle-instance",
-          "description": "SSH host target for local checks.",
-          "type": "string"
-        },
         "scope": {
           "default": "full",
-          "description": "Check scope: 'local' (SSH to VM), 'tunnel' (Cloudflare HTTPS), or 'full' (both).",
+          "description": "'local' (Docker + localhost), 'tunnel' (Cloudflare HTTPS), or 'full' (both).",
           "enum": [
             "local",
             "tunnel",

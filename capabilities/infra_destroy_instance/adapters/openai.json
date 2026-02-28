@@ -1,0 +1,25 @@
+{
+  "function": {
+    "description": "Tear down a template instance by Compose project name. Runs docker compose -p <project> down.",
+    "name": "infra.destroy_instance",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "project": {
+          "description": "Compose project name (e.g. 'claude-mcp-server-myrepo').",
+          "type": "string"
+        },
+        "volumes": {
+          "default": false,
+          "description": "Also remove named volumes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

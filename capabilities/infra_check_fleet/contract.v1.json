@@ -1,6 +1,6 @@
 {
   "name": "infra.check_fleet",
-  "description": "Check health of all deployed MCP services via SSH (local) and Cloudflare tunnel (HTTPS). Returns per-service status and an aggregate health summary.",
+  "description": "Check health of all deployed MCP services locally and via Cloudflare tunnel (HTTPS). Returns per-service status and an aggregate health summary.",
   "version": "v1",
   "annotations": {
     "title": "Check All MCP Service Health",
@@ -21,12 +21,7 @@
           "full"
         ],
         "default": "full",
-        "description": "Check scope: 'local' (SSH to VM), 'tunnel' (Cloudflare HTTPS), or 'full' (both)."
-      },
-      "host": {
-        "type": "string",
-        "default": "ubuntu@matthews-oracle-instance",
-        "description": "SSH host target for local checks."
+        "description": "'local' (Docker + localhost), 'tunnel' (Cloudflare HTTPS), or 'full' (both)."
       },
       "services": {
         "type": [
@@ -99,12 +94,8 @@
   "errors": [
     {
       "code": "dependency_error",
-      "description": "ssh or curl not found in PATH."
-    },
-    {
-      "code": "ssh_error",
-      "description": "SSH connection to the VM failed."
+      "description": "docker or curl not found in PATH."
     }
   ],
-  "side_effects": "Runs read-only SSH commands and HTTP requests. Triggers one trivial MCP tool call per service for smoke testing."
+  "side_effects": "Runs read-only Docker and curl commands locally, and HTTP requests via Cloudflare tunnels. Triggers one trivial MCP tool call per service for smoke testing."
 }

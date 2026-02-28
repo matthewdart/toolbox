@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-SSH_BATCH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+from capabilities._infra_common import run_shell
 
 
 class DiscoverStacksError(Exception):
@@ -15,28 +13,6 @@ class DiscoverStacksError(Exception):
 
 class DependencyError(DiscoverStacksError):
     """Raised when required external dependencies are missing."""
-
-
-class SSHError(DiscoverStacksError):
-    """Raised when the SSH connection or remote command fails."""
-
-
-def _run_local(cmd: list[str]) -> subprocess.CompletedProcess:
-    """Execute a command locally."""
-    return subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
-    )
-
-
-def _run_ssh(host: str, remote_cmd: str) -> subprocess.CompletedProcess:
-    """Execute a command on the remote host over SSH."""
-    return subprocess.run(
-        ["ssh", *SSH_BATCH_OPTIONS, host, remote_cmd],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
 
 
 def _scan_script(base_dir: str) -> str:
@@ -65,7 +41,6 @@ done
 
 def discover_stacks(
     *,
-    host: str = "local",
     base_dir: str = "/opt",
     **kwargs: Any,
 ) -> Dict[str, Any]:
@@ -75,21 +50,15 @@ def discover_stacks(
     name, whether it has an override file, .env file, and running status.
 
     Raises:
-        DependencyError: If required binaries are not found.
-        SSHError: If the SSH connection fails.
+        DiscoverStacksError: If the scan command fails.
     """
     script = _scan_script(base_dir)
 
-    if host == "local":
-        proc = _run_local(["sh", "-c", script])
-    else:
-        if not shutil.which("ssh"):
-            raise DependencyError("ssh not found in PATH")
-        proc = _run_ssh(host, script)
+    proc = run_shell(script)
 
     if proc.returncode != 0:
-        error_msg = proc.stderr.strip() or "remote command failed"
-        raise SSHError(error_msg)
+        error_msg = proc.stderr.strip() or "scan command failed"
+        raise DiscoverStacksError(error_msg)
 
     stacks: List[Dict[str, Any]] = []
     for line in proc.stdout.strip().splitlines():
@@ -102,7 +71,6 @@ def discover_stacks(
             continue
 
     return {
-        "host": host,
         "base_dir": base_dir,
         "stack_count": len(stacks),
         "stacks": stacks,

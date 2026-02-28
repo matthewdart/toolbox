@@ -1,21 +1,16 @@
 {
   "name": "infra.destroy_stack",
-  "description": "Tear down a static stack on a remote host. Resolves stack name to /opt/{stack} and runs docker compose down.",
+  "description": "Tear down a static stack locally. Resolves stack name to /opt/{stack} and runs docker compose down.",
   "version": "v1",
   "annotations": {
     "title": "Destroy Stack",
-    "destructiveHint": true,
-    "openWorldHint": true
+    "destructiveHint": true
   },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
-      },
       "stack": {
         "type": "string",
         "description": "Repo/stack name. Resolves to /opt/{stack} on the host."
@@ -31,14 +26,13 @@
         "default": "/opt"
       }
     },
-    "required": ["host", "stack"]
+    "required": ["stack"]
   },
   "output_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "stack": { "type": "string" },
       "compose_dir": { "type": "string" },
       "action": { "type": "string" },
@@ -46,12 +40,11 @@
       "exit_code": { "type": "integer" },
       "error": { "type": "string" }
     },
-    "required": ["host", "stack", "compose_dir", "action", "volumes_removed"]
+    "required": ["stack", "compose_dir", "action", "volumes_removed"]
   },
   "errors": [
-    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command execution failed." }
+    { "code": "dependency_error", "description": "docker not found in PATH." }
   ],
-  "side_effects": "Stops and removes Docker containers (and optionally volumes) on the remote host via SSH.",
+  "side_effects": "Stops and removes Docker containers (and optionally volumes) locally.",
   "version_notes": "v1 initial implementation."
 }

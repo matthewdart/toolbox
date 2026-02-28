@@ -1,0 +1,41 @@
+{
+  "function": {
+    "description": "Create a named instance from a Docker Compose template. Sets project name to {template}-{name} and runs docker compose up -d.",
+    "name": "infra.spawn_instance",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "base_dir": {
+          "default": "/opt",
+          "description": "Base directory on the host.",
+          "type": "string"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": null,
+          "description": "Environment variables for Compose substitution.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Instance name. Combined with template for project name.",
+          "type": "string"
+        },
+        "template": {
+          "description": "Repo name containing docker-compose.template.yml.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template",
+        "name"
+      ],
+      "type": "object"
+    }
+  },
+  "type": "function"
+}

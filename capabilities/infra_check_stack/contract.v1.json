@@ -1,25 +1,20 @@
 {
   "name": "infra.check_stack",
-  "description": "Check Docker Compose service status on a remote host via SSH.",
+  "description": "Check Docker Compose service status locally.",
   "version": "v1",
   "annotations": {
     "title": "Check Docker Compose Stack",
     "readOnlyHint": true,
-    "idempotentHint": true,
-    "openWorldHint": true
+    "idempotentHint": true
   },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
-      },
       "compose_dir": {
         "type": "string",
-        "description": "Absolute path to the Docker Compose project directory on the remote host."
+        "description": "Absolute path to the Docker Compose project directory."
       },
       "services": {
         "type": [
@@ -34,7 +29,6 @@
       }
     },
     "required": [
-      "host",
       "compose_dir"
     ]
   },
@@ -43,13 +37,9 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "The SSH host that was queried."
-      },
       "compose_dir": {
         "type": "string",
-        "description": "The remote compose directory."
+        "description": "Absolute path to the Docker Compose project directory."
       },
       "service_count": {
         "type": "integer",
@@ -89,28 +79,23 @@
       },
       "error": {
         "type": "string",
-        "description": "Error message from the remote host, if the command failed."
+        "description": "Error message, if the command failed."
       },
       "exit_code": {
         "type": "integer",
-        "description": "Exit code from the remote SSH command, present only on failure."
+        "description": "Exit code from the command, present only on failure."
       }
     },
     "required": [
-      "host",
       "compose_dir"
     ]
   },
   "errors": [
     {
       "code": "dependency_error",
-      "description": "ssh binary not found in PATH."
-    },
-    {
-      "code": "ssh_error",
-      "description": "SSH connection or remote command execution failed."
+      "description": "docker not found in PATH."
     }
   ],
-  "side_effects": "Runs a read-only docker compose ps command on the remote host via SSH. No containers are started, stopped, or modified.",
+  "side_effects": "Runs a read-only docker compose ps command locally. No containers are started, stopped, or modified.",
   "version_notes": "v1 migrated from stack-status skill script."
 }

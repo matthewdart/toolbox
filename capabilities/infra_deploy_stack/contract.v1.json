@@ -1,21 +1,16 @@
 {
   "name": "infra.deploy_stack",
-  "description": "Deploy a static stack to a host. Resolves stack name to /opt/{stack} and runs docker compose pull && up -d.",
+  "description": "Deploy a static stack locally. Resolves stack name to /opt/{stack} and runs docker compose pull && up -d.",
   "version": "v1",
   "annotations": {
     "title": "Deploy Stack",
-    "destructiveHint": true,
-    "openWorldHint": true
+    "destructiveHint": true
   },
   "input_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": {
-        "type": "string",
-        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
-      },
       "stack": {
         "type": "string",
         "description": "Repo/stack name. Resolves to /opt/{stack} on the host."
@@ -33,7 +28,7 @@
       },
       "dry_run": {
         "type": "boolean",
-        "description": "Preview SSH command without executing.",
+        "description": "Preview command without executing.",
         "default": false
       },
       "base_dir": {
@@ -42,14 +37,13 @@
         "default": "/opt"
       }
     },
-    "required": ["host", "stack"]
+    "required": ["stack"]
   },
   "output_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
       "stack": { "type": "string" },
       "compose_dir": { "type": "string" },
       "services": {
@@ -58,18 +52,17 @@
       },
       "action": { "type": "string" },
       "exit_code": { "type": "integer" },
-      "ssh_command": {
-        "type": "array",
-        "items": { "type": "string" }
+      "command": {
+        "type": "string",
+        "description": "Shell command preview (dry_run only)."
       },
       "error": { "type": "string" }
     },
-    "required": ["host", "stack", "compose_dir", "services", "action"]
+    "required": ["stack", "compose_dir", "services", "action"]
   },
   "errors": [
-    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
-    { "code": "ssh_error", "description": "SSH connection or remote command execution failed." }
+    { "code": "dependency_error", "description": "docker not found in PATH." }
   ],
-  "side_effects": "Pulls Docker images and optionally starts containers on the remote host via SSH.",
+  "side_effects": "Pulls Docker images and optionally starts containers locally.",
   "version_notes": "v1 replaces infra.deploy_compose with convention-based stack naming."
 }

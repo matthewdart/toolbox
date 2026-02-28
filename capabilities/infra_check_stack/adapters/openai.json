@@ -1,16 +1,12 @@
 {
   "function": {
-    "description": "Check Docker Compose service status on a remote host via SSH.",
+    "description": "Check Docker Compose service status locally.",
     "name": "infra.check_stack",
     "parameters": {
       "additionalProperties": false,
       "properties": {
         "compose_dir": {
-          "description": "Absolute path to the Docker Compose project directory on the remote host.",
-          "type": "string"
-        },
-        "host": {
-          "description": "SSH host target (e.g. user@hostname or an SSH config alias).",
+          "description": "Absolute path to the Docker Compose project directory.",
           "type": "string"
         },
         "services": {
@@ -26,7 +22,6 @@
         }
       },
       "required": [
-        "host",
         "compose_dir"
       ],
       "type": "object"
