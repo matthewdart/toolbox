@@ -27,6 +27,11 @@ on:
         required: false
         type: string
         default: ubuntu
+      up:
+        description: "Pull and start containers after deploy (false = pull only)"
+        required: false
+        type: boolean
+        default: true
       health_port:
         description: "Port to poll /health on after deploy (0 = skip health check)"
         required: false
@@ -100,7 +105,7 @@ jobs:
             echo "No override generated — skipping"
           fi
 
-      - name: Pull and deploy
+      - name: Pull
         run: |
           HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
@@ -108,7 +113,18 @@ jobs:
               -o ConnectTimeout=15 \
               -o BatchMode=yes \
               "$HOST" \
-              "cd $DIR && docker compose pull && docker compose up -d"
+              "cd $DIR && docker compose pull"
+
+      - name: Deploy
+        if: inputs.up
+        run: |
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=15 \
+              -o BatchMode=yes \
+              "$HOST" \
+              "cd $DIR && docker compose up -d"
 
       - name: Verify deployment
         run: |
@@ -121,7 +137,7 @@ jobs:
               "cd $DIR && docker compose ps"
 
       - name: Poll health endpoint
-        if: inputs.health_port != 0
+        if: inputs.up && inputs.health_port != 0
         run: |
           HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           PORT="${{ inputs.health_port }}"
