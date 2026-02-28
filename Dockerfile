@@ -33,9 +33,15 @@ RUN ARCH=$(uname -m) && \
       | tar xz --strip-components=1 -C /usr/local/bin docker/docker
 
 # Docker Compose V2 plugin
-RUN ARCH=$(uname -m) && \
+# Use TARGETARCH (set by buildx) mapped to release naming convention
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+      amd64) COMPOSE_ARCH=x86_64 ;; \
+      arm64) COMPOSE_ARCH=aarch64 ;; \
+      *)     COMPOSE_ARCH=$(uname -m) ;; \
+    esac && \
     mkdir -p /usr/local/lib/docker/cli-plugins && \
-    curl -fsSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${ARCH}" \
+    curl -fsSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${COMPOSE_ARCH}" \
       -o /usr/local/lib/docker/cli-plugins/docker-compose && \
     chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
