@@ -27,15 +27,6 @@ on:
         required: false
         type: string
         default: ubuntu
-      up:
-        description: >
-          Whether to start containers after staging the new image.
-          When true (default): restarts any service that was running, exited, or
-          failed — but leaves intentionally-staged (Created) services alone.
-          When false: pulls and recreates containers only; nothing is started.
-        required: false
-        type: boolean
-        default: true
       health_port:
         description: "Port to poll /health on after deploy (0 = skip health check)"
         required: false
@@ -109,7 +100,7 @@ jobs:
             echo "No override generated — skipping"
           fi
 
-      - name: Pull and stage
+      - name: Pull and deploy
         run: |
           HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
           DIR="/opt/${{ inputs.service_name }}"
@@ -117,21 +108,7 @@ jobs:
               -o ConnectTimeout=15 \
               -o BatchMode=yes \
               "$HOST" \
-              "cd $DIR && docker compose pull && docker compose create --force-recreate"
-
-      - name: Start non-staged services
-        if: inputs.up
-        run: |
-          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
-          DIR="/opt/${{ inputs.service_name }}"
-          # Bring up any service that was running, exited, or failed.
-          # Services left in 'created' state were intentionally staged and
-          # should not be started automatically.
-          ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=15 \
-              -o BatchMode=yes \
-              "$HOST" \
-              "cd $DIR && SERVICES=\$(docker compose ps --services --filter status=running --filter status=exited --filter status=restarting --filter status=paused --filter status=dead 2>/dev/null | tr '\n' ' ') && if [ -n \"\$SERVICES\" ]; then echo \"Starting: \$SERVICES\" && docker compose up -d \$SERVICES; else echo 'No services to start'; fi"
+              "cd $DIR && docker compose pull && docker compose up -d"
 
       - name: Verify deployment
         run: |
