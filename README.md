@@ -96,6 +96,52 @@ jobs:
 
 ---
 
+## Docker Deployment (CI/CD)
+
+### Infrastructure Quick Reference
+
+| Property | Value |
+|----------|-------|
+| **Port** | — (stdio) |
+| **Network mode** | `service:tailscale` |
+| **MCP namespace** | `toolbox` |
+| **MCP transport** | `stdio` |
+| **Compose dir (VM)** | `/opt/toolbox/` |
+
+#### Docker Labels
+
+| Label | Value |
+|-------|-------|
+| `mcp.enabled` | `true` |
+| `mcp.namespace` | `"toolbox"` |
+| `mcp.transport` | `"stdio"` |
+| `mcp.lifecycle` | `"persistent"` |
+| `mcp.stdio.*` | stdio exec config |
+
+#### Secrets
+
+| Secret | Purpose |
+|--------|---------|
+| `GH_TOKEN` | GitHub API access |
+| `OPENAI_API_KEY` | OpenAI API |
+| `TS_AUTHKEY` | Tailscale auth key (sidecar) |
+
+#### Sidecars
+
+| Sidecar | Status |
+|---------|--------|
+| Tailscale | Active |
+
+> For the full ecosystem map (all services, networking, data flows), see [INFRASTRUCTURE_MAP.md](vendor/handbook/INFRASTRUCTURE_MAP.md).
+> Port registry and MCP conventions: [REFERENCE_ARCHITECTURE.md §11.8](vendor/handbook/REFERENCE_ARCHITECTURE.md).
+
+Push to `main` triggers automatic build and deploy via GitHub Actions:
+
+1. `build-arm-image.yml` — builds `linux/arm64` Docker image, pushes to GHCR
+2. `deploy-stack.yml` — SCPs `docker-compose.yml` to `/opt/toolbox/` on the Oracle Cloud VM, runs `docker compose pull && up -d`
+
+---
+
 ## Design Principles
 
 1. **No sudo** — capabilities run as an unprivileged user
