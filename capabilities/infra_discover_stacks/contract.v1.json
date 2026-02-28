@@ -1,6 +1,6 @@
 {
   "name": "infra.discover_stacks",
-  "description": "Scan /opt for deployable Docker Compose stacks on a remote host.",
+  "description": "Scan /opt for deployable Docker Compose stacks.",
   "version": "v1",
   "annotations": {
     "title": "Discover Stacks",
@@ -15,7 +15,8 @@
     "properties": {
       "host": {
         "type": "string",
-        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
       },
       "base_dir": {
         "type": "string",
@@ -23,7 +24,7 @@
         "default": "/opt"
       }
     },
-    "required": ["host"]
+    "required": []
   },
   "output_schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -59,6 +60,6 @@
     { "code": "dependency_error", "description": "ssh binary not found in PATH." },
     { "code": "ssh_error", "description": "SSH connection or remote command execution failed." }
   ],
-  "side_effects": "Executes read-only commands on the remote host via SSH to scan directories and check Docker Compose status.",
+  "side_effects": "Scans directories and checks Docker Compose status (locally or via SSH).",
   "version_notes": "v1 initial implementation."
 }

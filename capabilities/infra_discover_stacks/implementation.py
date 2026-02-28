@@ -1,4 +1,4 @@
-"""Core capability: scan /opt for deployable Docker Compose stacks on a remote host."""
+"""Core capability: scan /opt for deployable Docker Compose stacks."""
 from __future__ import annotations
 
 import json
@@ -21,6 +21,13 @@ class SSHError(DiscoverStacksError):
     """Raised when the SSH connection or remote command fails."""
 
 
+def _run_local(cmd: list[str]) -> subprocess.CompletedProcess:
+    """Execute a command locally."""
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
+    )
+
+
 def _run_ssh(host: str, remote_cmd: str) -> subprocess.CompletedProcess:
     """Execute a command on the remote host over SSH."""
     return subprocess.run(
@@ -32,27 +39,9 @@ def _run_ssh(host: str, remote_cmd: str) -> subprocess.CompletedProcess:
     )
 
 
-def discover_stacks(
-    *,
-    host: str,
-    base_dir: str = "/opt",
-    **kwargs: Any,
-) -> Dict[str, Any]:
-    """Scan a remote host for deployable Docker Compose stacks.
-
-    Looks for {base_dir}/*/docker-compose.yml and reports each stack's
-    name, whether it has an override file, .env file, and running status.
-
-    Raises:
-        DependencyError: If ssh is not found in PATH.
-        SSHError: If the SSH connection fails.
-    """
-    if not shutil.which("ssh"):
-        raise DependencyError("ssh not found in PATH")
-
-    # Find all docker-compose.yml files, then check for override/.env/status
-    # Use a single SSH command with a shell script for efficiency
-    script = f'''
+def _scan_script(base_dir: str) -> str:
+    """Shell script that scans for docker-compose stacks."""
+    return f'''
 cd {base_dir} 2>/dev/null || exit 1
 for dir in */; do
     dir="${{dir%/}}"
@@ -63,7 +52,6 @@ for dir in */; do
     [ -f "$dir/.env" ] && has_env="true"
     has_template="false"
     [ -f "$dir/docker-compose.template.yml" ] && has_template="true"
-    # Check if any containers are running for this stack
     running=$(cd "$dir" && docker compose ps --format json 2>/dev/null | head -1)
     if [ -n "$running" ]; then
         status="running"
@@ -74,7 +62,30 @@ for dir in */; do
 done
 '''
 
-    proc = _run_ssh(host, script)
+
+def discover_stacks(
+    *,
+    host: str = "local",
+    base_dir: str = "/opt",
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Scan for deployable Docker Compose stacks.
+
+    Looks for {base_dir}/*/docker-compose.yml and reports each stack's
+    name, whether it has an override file, .env file, and running status.
+
+    Raises:
+        DependencyError: If required binaries are not found.
+        SSHError: If the SSH connection fails.
+    """
+    script = _scan_script(base_dir)
+
+    if host == "local":
+        proc = _run_local(["sh", "-c", script])
+    else:
+        if not shutil.which("ssh"):
+            raise DependencyError("ssh not found in PATH")
+        proc = _run_ssh(host, script)
 
     if proc.returncode != 0:
         error_msg = proc.stderr.strip() or "remote command failed"
