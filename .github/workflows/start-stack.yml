@@ -1,0 +1,82 @@
+name: Start Stack on VM
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: "Service name — starts /opt/<service_name>/ on the VM"
+        required: true
+        type: string
+      vm_hostname:
+        required: false
+        type: string
+        default: matthews-oracle-instance
+      vm_user:
+        required: false
+        type: string
+        default: ubuntu
+      health_port:
+        description: "Port to poll /health on after start (0 = skip)"
+        required: false
+        type: number
+        default: 0
+      health_timeout:
+        required: false
+        type: number
+        default: 120
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Start services
+        run: |
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=15 \
+              -o BatchMode=yes \
+              "$HOST" \
+              "cd $DIR && docker compose up -d"
+
+      - name: Verify
+        run: |
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+          DIR="/opt/${{ inputs.service_name }}"
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              "$HOST" \
+              "cd $DIR && docker compose ps"
+
+      - name: Poll health endpoint
+        if: inputs.health_port != 0
+        run: |
+          HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+          PORT="${{ inputs.health_port }}"
+          TIMEOUT="${{ inputs.health_timeout }}"
+          INTERVAL=5
+          ELAPSED=0
+          CURL_CMD="curl -sS http://localhost:${PORT}/health 2>/dev/null"
+          echo "Polling /health on port ${PORT} (timeout ${TIMEOUT}s) ..."
+          while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+            RESPONSE=$(ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5 "$HOST" \
+              "$CURL_CMD" || true)
+            STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
+            if [ "$STATUS" = "ok" ] || [ "$STATUS" = "degraded" ]; then
+              echo "✓ Health check passed: status=${STATUS} (after ${ELAPSED}s)"
+              echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+              exit 0
+            fi
+            echo "  ... waiting (${ELAPSED}s/${TIMEOUT}s, status=${STATUS:-no response})"
+            sleep "$INTERVAL"
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          echo "✗ Health check timed out after ${TIMEOUT}s"
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes "$HOST" \
+            "cd /opt/${{ inputs.service_name }} && docker compose logs --tail=50" || true
+          exit 1
