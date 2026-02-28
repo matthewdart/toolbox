@@ -10,6 +10,8 @@ services:
     container_name: toolbox
     restart: unless-stopped
     user: "1001"
+    group_add:
+      - "999"  # docker group GID on Oracle VM
     stdin_open: true  # required for docker exec -i (stdio transport)
     network_mode: host
     environment:

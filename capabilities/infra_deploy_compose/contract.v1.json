@@ -1,6 +1,6 @@
 {
   "name": "infra.deploy_compose",
-  "description": "Deploy Docker Compose services on a remote host via SSH.",
+  "description": "DEPRECATED: Use infra.deploy_stack instead, which resolves stack names to /opt/{stack} by convention. Deploy Docker Compose services on a remote host via SSH.",
   "version": "v1",
   "annotations": {
     "title": "Deploy Docker Compose Services",
@@ -94,5 +94,5 @@
     }
   ],
   "side_effects": "Pulls Docker images and optionally starts containers on the remote host via SSH.",
-  "version_notes": "v1 migrated from deploy-compose skill script."
+  "version_notes": "v1 migrated from deploy-compose skill script. DEPRECATED in favour of infra.deploy_stack."
 }

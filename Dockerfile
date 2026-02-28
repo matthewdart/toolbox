@@ -32,6 +32,13 @@ RUN ARCH=$(uname -m) && \
     curl -fsSL "https://download.docker.com/linux/static/stable/${ARCH}/docker-27.5.1.tgz" \
       | tar xz --strip-components=1 -C /usr/local/bin docker/docker
 
+# Docker Compose V2 plugin
+RUN ARCH=$(uname -m) && \
+    mkdir -p /usr/local/lib/docker/cli-plugins && \
+    curl -fsSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${ARCH}" \
+      -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
 # --- Non-root user ---
 RUN groupadd -g 1001 toolbox && useradd -u 1001 -g toolbox -m toolbox
 
@@ -45,6 +52,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY core/ core/
 COPY capabilities/ capabilities/
 COPY adapters/ adapters/
+COPY compose/ compose/
 
 # Ensure the package is importable
 ENV PYTHONPATH=/app

@@ -1,0 +1,34 @@
+services:
+  chrome:
+    image: selenium/standalone-chrome:latest
+    container_name: browser-${NAME:-default}-chrome
+    shm_size: "2g"
+    ports:
+      - "${VNC_PORT:-7900}:7900"
+    volumes:
+      - chrome-profile:/home/seluser/.config/google-chrome
+    environment:
+      - SE_VNC_NO_PASSWORD=1
+    labels:
+      toolbox.managed: "true"
+      toolbox.type: browser
+
+  playwright-mcp:
+    image: node:22-slim
+    container_name: browser-${NAME:-default}-mcp
+    command: npx @playwright/mcp@latest --cdp-endpoint ws://chrome:9222
+    depends_on:
+      - chrome
+    labels:
+      toolbox.managed: "true"
+      toolbox.type: browser
+      mcp.enabled: "true"
+      mcp.transport: stdio
+      mcp.lifecycle: "persistent"
+      mcp.namespace: browser-${NAME:-default}
+      mcp.stdio.container: browser-${NAME:-default}-mcp
+      mcp.stdio.command: npx
+      mcp.stdio.args: '["@playwright/mcp@latest", "--cdp-endpoint", "ws://chrome:9222"]'
+
+volumes:
+  chrome-profile:

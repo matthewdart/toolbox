@@ -105,6 +105,20 @@ jobs:
             echo "No override generated — skipping"
           fi
 
+      - name: Sync docker-compose.template.yml to VM
+        run: |
+          TEMPLATE="${{ inputs.compose_file }}"
+          TEMPLATE_FILE="$(dirname "$TEMPLATE")/docker-compose.template.yml"
+          if [ -f "$TEMPLATE_FILE" ]; then
+            HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"
+            DIR="/opt/${{ inputs.service_name }}"
+            scp -o StrictHostKeyChecking=no -o BatchMode=yes \
+                "$TEMPLATE_FILE" "$HOST:$DIR/docker-compose.template.yml"
+            echo "✓ docker-compose.template.yml synced"
+          else
+            echo "No template file found — skipping"
+          fi
+
       - name: Pull
         run: |
           HOST="${{ inputs.vm_user }}@${{ inputs.vm_hostname }}"

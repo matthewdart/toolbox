@@ -1,0 +1,59 @@
+{
+  "name": "infra.discover_templates",
+  "description": "Scan /opt for ephemeral Docker Compose templates. Returns available templates with their required environment variables.",
+  "version": "v1",
+  "annotations": {
+    "title": "Discover Templates",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
+      },
+      "base_dir": {
+        "type": "string",
+        "description": "Base directory to scan for templates.",
+        "default": "/opt"
+      }
+    }
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": { "type": "string" },
+      "base_dir": { "type": "string" },
+      "template_count": { "type": "integer" },
+      "templates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "path": { "type": "string" },
+            "env_vars": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "required": ["host", "base_dir", "template_count", "templates"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "discover_templates_error", "description": "Local command failed." }
+  ],
+  "side_effects": "Reads files on the target host. No modifications.",
+  "version_notes": "v1 initial implementation."
+}

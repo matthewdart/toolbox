@@ -1,0 +1,64 @@
+{
+  "name": "infra.spawn_instance",
+  "description": "Create a named instance from a Docker Compose template. Sets project name to {template}-{name} and runs docker compose up -d.",
+  "version": "v1",
+  "annotations": {
+    "title": "Spawn Template Instance",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "template": {
+        "type": "string",
+        "description": "Repo name containing docker-compose.template.yml."
+      },
+      "name": {
+        "type": "string",
+        "description": "Instance name. Combined with template for project name."
+      },
+      "host": {
+        "type": "string",
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
+      },
+      "env": {
+        "type": ["object", "null"],
+        "description": "Environment variables for Compose substitution.",
+        "additionalProperties": { "type": "string" },
+        "default": null
+      },
+      "base_dir": {
+        "type": "string",
+        "description": "Base directory on the host.",
+        "default": "/opt"
+      }
+    },
+    "required": ["template", "name"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": { "type": "string" },
+      "template": { "type": "string" },
+      "name": { "type": "string" },
+      "project_name": { "type": "string" },
+      "action": { "type": "string" },
+      "exit_code": { "type": "integer" },
+      "hint": { "type": "string" }
+    },
+    "required": ["host", "template", "name", "project_name", "action"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "Required binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "compose_error", "description": "docker compose up failed." }
+  ],
+  "side_effects": "Creates Docker containers from a Compose template on the target host.",
+  "version_notes": "v1 initial implementation."
+}

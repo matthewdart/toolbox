@@ -1,0 +1,53 @@
+{
+  "name": "infra.destroy_instance",
+  "description": "Tear down a template instance by Compose project name. Runs docker compose -p <project> down.",
+  "version": "v1",
+  "annotations": {
+    "title": "Destroy Template Instance",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "project": {
+        "type": "string",
+        "description": "Compose project name (e.g. 'claude-mcp-server-myrepo')."
+      },
+      "host": {
+        "type": "string",
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
+      },
+      "volumes": {
+        "type": "boolean",
+        "description": "Also remove named volumes.",
+        "default": false
+      }
+    },
+    "required": ["project"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": { "type": "string" },
+      "project": { "type": "string" },
+      "action": { "type": "string" },
+      "volumes_removed": { "type": "boolean" },
+      "exit_code": { "type": "integer" },
+      "hint": { "type": "string" }
+    },
+    "required": ["host", "project", "action", "volumes_removed"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "Required binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "compose_error", "description": "docker compose down failed." }
+  ],
+  "side_effects": "Stops and removes Docker containers (and optionally volumes) on the target host.",
+  "version_notes": "v1 initial implementation."
+}

@@ -1,0 +1,57 @@
+{
+  "name": "infra.cleanup_instances",
+  "description": "Remove stopped/orphaned managed containers. Finds containers with toolbox.managed=true label in exited/dead state.",
+  "version": "v1",
+  "annotations": {
+    "title": "Cleanup Instances",
+    "destructiveHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
+      },
+      "dry_run": {
+        "type": "boolean",
+        "description": "List without removing.",
+        "default": false
+      }
+    }
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": { "type": "string" },
+      "action": { "type": "string" },
+      "count": { "type": "integer" },
+      "containers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "image": { "type": "string" },
+            "status": { "type": "string" }
+          }
+        }
+      },
+      "exit_code": { "type": "integer" }
+    },
+    "required": ["host", "action", "count", "containers"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "Required binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "cleanup_instances_error", "description": "Local docker command failed." }
+  ],
+  "side_effects": "Removes stopped Docker containers on the target host (unless dry_run).",
+  "version_notes": "v1 initial implementation."
+}

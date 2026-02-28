@@ -1,0 +1,67 @@
+{
+  "name": "infra.list_instances",
+  "description": "List running template instances managed by toolbox. Groups containers by Compose project name.",
+  "version": "v1",
+  "annotations": {
+    "title": "List Template Instances",
+    "readOnlyHint": true,
+    "idempotentHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "template": {
+        "type": ["string", "null"],
+        "description": "Filter by template type (e.g. 'browser', 'claude-mcp-server'). Null for all.",
+        "default": null
+      },
+      "host": {
+        "type": "string",
+        "description": "'local' (default) or SSH host alias.",
+        "default": "local"
+      }
+    }
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": { "type": "string" },
+      "filter_template": { "type": ["string", "null"] },
+      "instance_count": { "type": "integer" },
+      "instances": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "project_name": { "type": "string" },
+            "type": { "type": "string" },
+            "mcp_namespace": { "type": "string" },
+            "containers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "status": { "type": "string" },
+                  "image": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "required": ["host", "instance_count", "instances"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "Required binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command failed." },
+    { "code": "list_instances_error", "description": "Local docker command failed." }
+  ],
+  "side_effects": "Queries Docker on the target host. No modifications.",
+  "version_notes": "v1 initial implementation."
+}

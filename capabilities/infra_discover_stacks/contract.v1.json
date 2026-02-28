@@ -1,0 +1,64 @@
+{
+  "name": "infra.discover_stacks",
+  "description": "Scan /opt for deployable Docker Compose stacks on a remote host.",
+  "version": "v1",
+  "annotations": {
+    "title": "Discover Stacks",
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "SSH host target (e.g. user@hostname or an SSH config alias)."
+      },
+      "base_dir": {
+        "type": "string",
+        "description": "Base directory to scan for stacks.",
+        "default": "/opt"
+      }
+    },
+    "required": ["host"]
+  },
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string"
+      },
+      "base_dir": {
+        "type": "string"
+      },
+      "stack_count": {
+        "type": "integer"
+      },
+      "stacks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "has_override": { "type": "boolean" },
+            "has_env": { "type": "boolean" },
+            "has_template": { "type": "boolean" },
+            "status": { "type": "string" }
+          }
+        }
+      }
+    },
+    "required": ["host", "base_dir", "stack_count", "stacks"]
+  },
+  "errors": [
+    { "code": "dependency_error", "description": "ssh binary not found in PATH." },
+    { "code": "ssh_error", "description": "SSH connection or remote command execution failed." }
+  ],
+  "side_effects": "Executes read-only commands on the remote host via SSH to scan directories and check Docker Compose status.",
+  "version_notes": "v1 initial implementation."
+}
