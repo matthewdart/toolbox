@@ -24,6 +24,8 @@ services:
       - ~/.ssh:/home/toolbox/.ssh:ro
       # Docker socket for push-ghcr capability
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Host /opt for discover_stacks, discover_templates, spawn_instance
+      - /opt:/opt:ro
       # Persistent data directory for media downloads etc.
       - ./data:/app/data
     labels:
